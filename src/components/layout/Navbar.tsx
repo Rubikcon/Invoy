@@ -57,27 +57,36 @@ export default function Navbar({ currentView, isWalletConnected, onViewChange, o
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <button
-                key={item.label}
-                onClick={item.action}
-                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
-              >
-                {item.label}
-              </button>
-            ))}
+            <button className="text-gray-700 dark:text-gray-300 hover:text-red-500 font-medium transition-colors duration-200">
+              Solution
+            </button>
+            <button className="text-gray-700 dark:text-gray-300 hover:text-red-500 font-medium transition-colors duration-200">
+              Uses Cases
+            </button>
+            <button className="text-gray-700 dark:text-gray-300 hover:text-red-500 font-medium transition-colors duration-200">
+              Industries
+            </button>
+            <button className="text-gray-700 dark:text-gray-300 hover:text-red-500 font-medium transition-colors duration-200">
+              Partners
+            </button>
+            <button className="text-gray-700 dark:text-gray-300 hover:text-red-500 font-medium transition-colors duration-200">
+              Resource Center
+            </button>
+            <button className="text-gray-700 dark:text-gray-300 hover:text-red-500 font-medium transition-colors duration-200">
+              Company
+            </button>
           </div>
 
           {/* Dark Mode Toggle & Connect Wallet Button */}
           <div className="hidden md:flex">
             <div className="flex items-center space-x-4">
-              <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
+              <button className="text-gray-700 dark:text-gray-300 hover:text-red-500 font-medium transition-colors duration-200">
+                Log In
+              </button>
               <button
-                onClick={onConnectWallet}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+                className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-2 rounded-lg font-medium hover:border-red-500 hover:text-red-500 transition-all duration-200"
               >
-                <Wallet size={18} />
-                <span>{isWalletConnected ? 'Wallet Connected' : 'Connect Wallet'}</span>
+                Sign up
               </button>
             </div>
           </div>

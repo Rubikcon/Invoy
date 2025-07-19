@@ -1,102 +1,111 @@
 import React from 'react';
-import { Shield, CheckCircle, Network, Zap, Globe, Lock } from 'lucide-react';
+import { Shield, CheckCircle, Network, Zap, Globe, Lock, TrendingUp, Users, Star } from 'lucide-react';
 
 export default function Features() {
   const features = [
     {
-      icon: Network,
-      title: 'Chain-Aware Invoicing',
-      description: 'Automatically detects and validates the correct blockchain network to prevent costly mistakes.',
-      color: 'from-blue-500 to-cyan-500',
-      bgIcon: Globe,
-      particles: [
-        { size: 'w-2 h-2', color: 'bg-blue-400', position: 'top-4 right-4', animation: 'animate-ping' },
-        { size: 'w-1 h-1', color: 'bg-cyan-400', position: 'bottom-6 left-6', animation: 'animate-pulse' }
-      ]
-    },
-    {
-      icon: CheckCircle,
-      title: 'Employer Approval Flow',
-      description: 'Built-in approval system that gives employers full control and transparency over payments.',
-      color: 'from-green-500 to-emerald-500',
-      bgIcon: Lock,
-      particles: [
-        { size: 'w-1.5 h-1.5', color: 'bg-green-400', position: 'top-6 right-6', animation: 'animate-bounce' },
-        { size: 'w-1 h-1', color: 'bg-emerald-400', position: 'bottom-4 left-8', animation: 'animate-pulse' }
-      ]
-    },
-    {
       icon: Shield,
-      title: 'Wallet & Network Verification',
-      description: 'Double-check wallet addresses and network compatibility before any transaction occurs.',
-      color: 'from-purple-500 to-pink-500',
-      bgIcon: Zap,
-      particles: [
-        { size: 'w-2 h-2', color: 'bg-purple-400', position: 'top-3 right-3', animation: 'animate-pulse' },
-        { size: 'w-1 h-1', color: 'bg-pink-400', position: 'bottom-5 left-5', animation: 'animate-ping' }
-      ]
+      title: 'The Most Trusted and Love',
+      description: [
+        'Exceptional NPS Score of 55',
+        'Annual revenue retention of 134%',
+        'Average client tenure of 10+ years',
+        'Used by premium brands around the globe'
+      ],
+      color: 'from-pink-400 to-pink-500',
+      bgColor: 'bg-pink-50 dark:bg-pink-900/20'
+    },
+    {
+      icon: Users,
+      title: 'The Most Experienced',
+      description: [
+        'Over 40 years of experience in payments and invoicing',
+        'Financial strength and scale with top global banking partners',
+        'PCI DSS and ISO 27001 certified'
+      ],
+      color: 'from-pink-400 to-pink-500',
+      bgColor: 'bg-pink-50 dark:bg-pink-900/20'
+    },
+    {
+      icon: TrendingUp,
+      title: 'The Most Scalable Payment',
+      description: [
+        'Advanced features built on a multi-tenant AWS native platform',
+        'Pay-out and Pay-in capability in 32 countries'
+      ],
+      color: 'from-pink-400 to-pink-500',
+      bgColor: 'bg-pink-50 dark:bg-pink-900/20'
     }
   ];
 
   return (
-    <section id="features" className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300 relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-10 left-10 w-40 h-40 bg-blue-500/5 dark:bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-10 right-10 w-32 h-32 bg-purple-500/5 dark:bg-purple-400/10 rounded-full blur-3xl animate-pulse animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-green-500/5 dark:bg-green-400/10 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
-      </div>
-
+    <section id="features" className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
-            Why Choose Invoy?
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto transition-colors duration-300">
-            Built for the modern Web3 workforce with security and simplicity at its core.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-2xl p-8 hover:shadow-xl hover:border-transparent transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+              className={`${feature.bgColor} rounded-2xl p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group`}
             >
-              {/* Background Pattern */}
-              <div className="absolute top-0 right-0 w-20 h-20 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
-                <feature.bgIcon size={80} className="text-gray-900 dark:text-white" />
+              {/* Decorative Element */}
+              <div className="absolute top-0 right-0 w-24 h-24 opacity-20">
+                <div className={`w-full h-full bg-gradient-to-br ${feature.color} transform rotate-45 translate-x-8 -translate-y-8`}></div>
               </div>
               
-              {/* Floating Particles */}
-              <div className="absolute inset-0 pointer-events-none">
-                {feature.particles.map((particle, pIndex) => (
-                  <div
-                    key={pIndex}
-                    className={`absolute ${particle.size} ${particle.color} ${particle.position} ${particle.animation} opacity-20 rounded-full`}
-                  ></div>
-                ))}
+              <div className="relative z-10">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                  {feature.title}
+                </h3>
+                
+                <ul className="space-y-3">
+                  {feature.description.map((item, itemIndex) => (
+                    <li key={itemIndex} className="flex items-start space-x-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                      <span className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button className="mt-6 text-red-500 font-medium text-sm hover:text-red-600 transition-colors duration-200 flex items-center space-x-1">
+                  <span>Learn More</span>
+                  <span>→</span>
+                </button>
               </div>
-              
-              {/* Gradient Overlay on Hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300 rounded-2xl`}></div>
-              
-              <div className={`w-16 h-16 bg-gradient-to-r ${feature.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                <feature.icon size={32} className="text-white" />
-              </div>
-              
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
-                {feature.title}
-              </h3>
-              
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed transition-colors duration-300">
-                {feature.description}
-              </p>
-              
-              {/* Bottom Accent Line */}
-              <div className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r ${feature.color} w-0 group-hover:w-full transition-all duration-500 rounded-b-2xl`}></div>
             </div>
           ))}
+        </div>
+
+        {/* Webinar Section */}
+        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl overflow-hidden relative">
+          <div className="grid grid-cols-1 lg:grid-cols-2 items-center">
+            {/* Content */}
+            <div className="p-8 lg:p-12 text-white">
+              <h2 className="text-2xl lg:text-3xl font-bold mb-4">
+                Live Webinar: Taking on the Digital Invoicing and Payments Revolution
+              </h2>
+              <p className="text-white/90 mb-6 leading-relaxed">
+                Join us on February 21 at 11 a.m. ET for the live webinar "Taking on the Digital Invoicing and Payments Revolution" with TrePay CEO Brandon Spear, featuring Forrester Principal Analyst Jacob Morgan.
+              </p>
+              
+              <div className="mb-6">
+                <p className="text-white/80 text-sm mb-2">Featuring</p>
+                <div className="text-white font-semibold">Forrester</div>
+              </div>
+
+              <button className="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors duration-200">
+                Register Now
+              </button>
+            </div>
+
+            {/* Image */}
+            <div className="relative h-64 lg:h-full">
+              <img
+                src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=500&h=600&fit=crop"
+                alt="Professional man in suit"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>

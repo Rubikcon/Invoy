@@ -140,15 +140,15 @@ function App() {
         return (
           <>
             <Hero
-              onConnectWallet={connectWallet}
+              onConnectWallet={handleCreateInvoice}
               onCreateInvoice={handleCreateInvoice}
               isWalletConnected={walletInfo.isConnected}
               isConnecting={isConnecting}
               walletAddress={walletInfo.address}
             />
             <Features />
-            <HowItWorks />
             <Testimonials />
+            <HowItWorks />
             <FAQ />
           </>
         );
