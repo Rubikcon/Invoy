@@ -1,6 +1,7 @@
 import React from 'react';
 import { Wallet, FileText, ArrowRight } from 'lucide-react';
 import AnimatedFreelancer from '../ui/AnimatedFreelancer';
+import LinkPaymentAnimation from '../ui/LinkPaymentAnimation';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
 
 interface HeroProps {
@@ -95,10 +96,17 @@ export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnect
               visualVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
             }`}
           >
-            <AnimatedFreelancer />
+            <div className="space-y-8">
+              <AnimatedFreelancer />
+              
+              {/* Link and Payment Animation */}
+              <div className="mt-8">
+                <LinkPaymentAnimation />
+              </div>
+            </div>
             
             {/* Glassmorphism Invoice Card */}
-            <div className="absolute bottom-0 right-0 bg-white/20 dark:bg-gray-800/20 backdrop-blur-lg rounded-2xl border border-white/30 dark:border-gray-700/30 shadow-2xl p-6 transform rotate-3 hover:rotate-0 hover:scale-105 transition-all duration-300">
+            <div className="absolute -bottom-8 right-0 bg-white/20 dark:bg-gray-800/20 backdrop-blur-lg rounded-2xl border border-white/30 dark:border-gray-700/30 shadow-2xl p-6 transform rotate-3 hover:rotate-0 hover:scale-105 transition-all duration-300">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Invoice #INV-001</h3>
