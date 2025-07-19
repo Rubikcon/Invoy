@@ -27,6 +27,15 @@
   .animation-delay-5000 {
     animation-delay: 5s;
   }
+  .animate-crypto-float {
+    animation: cryptoFloat 4s ease-in-out infinite;
+  }
+  .animate-crypto-glow {
+    animation: cryptoGlow 3s ease-in-out infinite alternate;
+  }
+  .animate-slide-right {
+    animation: slideRight 3s ease-in-out infinite;
+  }
 }
 
 /* Smooth transitions for dark mode */
