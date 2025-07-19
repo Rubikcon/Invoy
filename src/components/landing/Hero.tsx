@@ -2,6 +2,7 @@ import React from 'react';
 import { Wallet, FileText, ArrowRight } from 'lucide-react';
 import AnimatedFreelancer from '../ui/AnimatedFreelancer';
 import LinkPaymentAnimation from '../ui/LinkPaymentAnimation';
+import CryptoLogos from '../ui/CryptoLogos';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
 
 interface HeroProps {
@@ -96,49 +97,58 @@ export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnect
               visualVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
             }`}
           >
-            <div className="space-y-8">
+            <div className="space-y-6">
               <AnimatedFreelancer />
               
-              {/* Link and Payment Animation */}
-              <div className="mt-8">
+              {/* Desktop: Side by side layout, Mobile: Stacked */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Link and Payment Animation */}
                 <LinkPaymentAnimation />
-              </div>
-            </div>
-            
-            {/* Glassmorphism Invoice Card */}
-            <div className="absolute -bottom-8 right-0 bg-white/20 dark:bg-gray-800/20 backdrop-blur-lg rounded-2xl border border-white/30 dark:border-gray-700/30 shadow-2xl p-6 transform rotate-3 hover:rotate-0 hover:scale-105 transition-all duration-300">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Invoice #INV-001</h3>
-                  <span className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-300">
-                    Approved
-                  </span>
-                </div>
                 
-                <div className="border-t border-gray-200/50 dark:border-gray-600/50 pt-4 space-y-3 transition-colors duration-300">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Freelancer:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">Sarah Chen</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Network:</span>
-                    <span className="font-medium text-blue-600">Ethereum</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Amount:</span>
-                    <span className="font-bold text-xl text-gray-900 dark:text-white">2.5 ETH</span>
-                  </div>
-                </div>
+                {/* Glassmorphism Invoice Card */}
+                <div className="relative bg-white/20 dark:bg-gray-800/20 backdrop-blur-lg rounded-2xl border border-white/30 dark:border-gray-700/30 shadow-2xl p-6 transform hover:scale-105 transition-all duration-300 lg:rotate-3 hover:rotate-0">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Invoice #INV-001</h3>
+                      <span className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-300 animate-pulse">
+                        Approved
+                      </span>
+                    </div>
+                    
+                    <div className="border-t border-gray-200/50 dark:border-gray-600/50 pt-4 space-y-3 transition-colors duration-300">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Freelancer:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">Sarah Chen</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Network:</span>
+                        <span className="font-medium text-blue-600 animate-pulse">Ethereum</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Amount:</span>
+                        <span className="font-bold text-xl text-gray-900 dark:text-white">2.5 ETH</span>
+                      </div>
+                    </div>
 
-                <div className="bg-gray-50/50 dark:bg-gray-800/50 rounded-lg p-4 transition-colors duration-300">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Wallet Address:</p>
-                  <code className="text-xs bg-white/50 dark:bg-gray-900/50 px-2 py-1 rounded border border-gray-200/50 dark:border-gray-600/50 font-mono text-gray-800 dark:text-gray-200">
-                    0x742d35Cc6634C0532925a3b8
-                  </code>
+                    <div className="bg-gray-50/50 dark:bg-gray-800/50 rounded-lg p-3 transition-colors duration-300">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Wallet Address:</p>
+                      <code className="text-xs bg-white/50 dark:bg-gray-900/50 px-2 py-1 rounded border border-gray-200/50 dark:border-gray-600/50 font-mono text-gray-800 dark:text-gray-200">
+                        0x742d35Cc6634C0532925a3b8
+                      </code>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Crypto Logos Section */}
+        <div className="mt-16 text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 transition-colors duration-300">
+            Supported Networks & Cryptocurrencies
+          </p>
+          <CryptoLogos />
         </div>
       </div>
     </section>
