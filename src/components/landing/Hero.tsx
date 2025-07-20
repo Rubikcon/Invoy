@@ -1,7 +1,7 @@
 import React from 'react';
 import { Wallet, FileText, ArrowRight, CheckCircle, Shield, Zap } from 'lucide-react';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
-import AnimatedInvoiceWoman from '../ui/AnimatedInvoiceWoman';
+import AnimatedHeroSlider from '../ui/AnimatedHeroSlider';
 
 interface HeroProps {
   onConnectWallet: () => void;
@@ -97,7 +97,7 @@ export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnect
 
           {/* Right Column - Animated Woman with Invoice */}
           <div className="relative">
-            <AnimatedInvoiceWoman />
+            <AnimatedHeroSlider />
           </div>
         </div>
 

@@ -124,6 +124,11 @@ export function useWallet() {
       network: '',
       isConnected: false
     });
+    
+    // Clear any stored wallet connection data
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem('walletConnected');
+    }
   };
 
   const formatAddress = (address: string): string => {

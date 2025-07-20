@@ -69,6 +69,13 @@ function App() {
     setIsCreateModalOpen(true);
   };
 
+  // Auto-redirect to dashboard when wallet connects
+  React.useEffect(() => {
+    if (walletInfo.isConnected && currentView === 'landing') {
+      setCurrentView('dashboard');
+    }
+  }, [walletInfo.isConnected, currentView]);
+
   const handleSubmitInvoice = (data: CreateInvoiceData) => {
     const newInvoice: Invoice = {
       id: `INV-${String(invoices.length + 1).padStart(3, '0')}`,
@@ -162,6 +169,8 @@ function App() {
         isWalletConnected={walletInfo.isConnected}
         onViewChange={setCurrentView}
         onConnectWallet={connectWallet}
+        onDisconnectWallet={disconnectWallet}
+        walletAddress={walletInfo.address}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
       />

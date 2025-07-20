@@ -31,23 +31,23 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 transition-colors duration-300">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={onBack}
-            className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition-colors duration-200 mb-4"
+            className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200 mb-4"
           >
             <ArrowLeft size={20} />
             <span>Back to Dashboard</span>
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Invoice Review</h1>
-          <p className="text-gray-600">Review and approve payment request</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Invoice Review</h1>
+          <p className="text-gray-600 dark:text-gray-300">Review and approve payment request</p>
         </div>
 
         {/* Invoice Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors duration-300">
           {/* Status Banner */}
           <div className={`px-6 py-4 ${
             invoice.status === 'Pending' ? 'bg-orange-50 border-b border-orange-200' :
@@ -72,61 +72,61 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                   Status: {invoice.status}
                 </span>
               </div>
-              <code className="text-sm bg-white px-3 py-1 rounded border">
+              <code className="text-sm bg-white dark:bg-gray-800 px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
                 {invoice.id}
               </code>
             </div>
           </div>
 
           {/* Invoice Content */}
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left Column - Freelancer Info */}
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                     <User size={20} />
                     <span>Freelancer Information</span>
                   </h3>
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 space-y-3 transition-colors duration-300">
                     <div>
-                      <p className="text-sm text-gray-600">Name</p>
-                      <p className="font-medium text-gray-900">{invoice.freelancerName}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Name</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{invoice.freelancerName}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-medium text-gray-900">{invoice.freelancerEmail}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Email</p>
+                      <p className="font-medium text-gray-900 dark:text-white break-all">{invoice.freelancerEmail}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Role</p>
-                      <p className="font-medium text-gray-900">{invoice.role}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Role</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{invoice.role}</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                     <Wallet size={20} />
                     <span>Payment Information</span>
                   </h3>
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 space-y-3 transition-colors duration-300">
                     <div>
-                      <p className="text-sm text-gray-600">Wallet Address</p>
-                      <code className="text-sm bg-white px-2 py-1 rounded border font-mono">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Wallet Address</p>
+                      <code className="text-sm bg-white dark:bg-gray-800 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 font-mono text-gray-900 dark:text-white break-all">
                         {invoice.walletAddress}
                       </code>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
                       <div>
-                        <p className="text-sm text-gray-600">Network</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">Network</p>
                         <div className="flex items-center space-x-2">
                           <Globe size={16} className="text-blue-500" />
-                          <span className="font-medium text-blue-600">{invoice.network}</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400">{invoice.network}</span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Amount</p>
-                        <p className="text-2xl font-bold text-gray-900">{invoice.amount} ETH</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">Amount</p>
+                        <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{invoice.amount} ETH</p>
                       </div>
                     </div>
                   </div>
@@ -136,30 +136,30 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
               {/* Right Column - Work Details */}
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                     <FileText size={20} />
                     <span>Work Description</span>
                   </h3>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-gray-700 leading-relaxed">{invoice.description}</p>
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 transition-colors duration-300">
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{invoice.description}</p>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                     <Calendar size={20} />
                     <span>Invoice Details</span>
                   </h3>
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 space-y-3 transition-colors duration-300">
                     <div>
-                      <p className="text-sm text-gray-600">Created</p>
-                      <p className="font-medium text-gray-900">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Created</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
                         {invoice.createdAt.toLocaleDateString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Employer Email</p>
-                      <p className="font-medium text-gray-900">{invoice.employerEmail}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Employer Email</p>
+                      <p className="font-medium text-gray-900 dark:text-white break-all">{invoice.employerEmail}</p>
                     </div>
                   </div>
                 </div>
@@ -168,18 +168,18 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
 
             {/* Action Buttons */}
             {invoice.status === 'Pending' && (
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row gap-4">
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row gap-4">
                   <button
                     onClick={onApprove}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                    className="w-full md:flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
                   >
                     <CheckCircle size={20} />
                     <span>Approve & Pay</span>
                   </button>
                   <button
                     onClick={() => setIsRejecting(true)}
-                    className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                    className="w-full md:flex-1 bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
                   >
                     <XCircle size={20} />
                     <span>Reject</span>
@@ -193,15 +193,15 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
         {/* Reject Modal */}
         {isRejecting && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="flex min-h-screen items-center justify-center p-4 md:p-8">
               <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setIsRejecting(false)}></div>
               
-              <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Invoice</h3>
+              <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 transition-colors duration-300">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reject Invoice</h3>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Reason for rejection
                     </label>
                     <div className="space-y-2">
@@ -211,8 +211,8 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                           onClick={() => setRejectReason(reason)}
                           className={`w-full text-left px-3 py-2 rounded-lg border transition-colors duration-200 ${
                             rejectReason === reason 
-                              ? 'border-red-500 bg-red-50 text-red-700' 
-                              : 'border-gray-200 hover:border-gray-300'
+                              ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' 
+                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-900 dark:text-white'
                           }`}
                         >
                           {reason}
@@ -228,7 +228,7 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                         placeholder="Please specify the reason..."
                         value={rejectReason === 'Other' ? '' : rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                       />
                     </div>
                   )}
@@ -237,7 +237,7 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     onClick={() => setIsRejecting(false)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-200"
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                   >
                     Cancel
                   </button>
