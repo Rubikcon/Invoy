@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, User, Globe, Search, X } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { WalletInfo, Invoice } from '../../types';
 import InvoiceTable from './InvoiceTable';
 
@@ -7,9 +8,10 @@ interface DashboardProps {
   walletInfo: WalletInfo;
   invoices: Invoice[];
   onCreateInvoice: () => void;
+  onDisconnectWallet: () => void;
 }
 
-export default function Dashboard({ walletInfo, invoices, onCreateInvoice }: DashboardProps) {
+export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDisconnectWallet }: DashboardProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filteredInvoices, setFilteredInvoices] = React.useState<Invoice[]>(invoices);
 
@@ -45,33 +47,52 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice }: Das
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
-            <p className="text-gray-600 dark:text-gray-300">Manage your invoices and payments</p>
+        <div className="mb-8">
+          {/* Title and Disconnect Button Row */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-300">Manage your invoices and payments</p>
+            </div>
+            
+            {/* Disconnect Wallet Button */}
+            <div className="flex flex-col items-start md:items-end">
+              <button
+                onClick={onDisconnectWallet}
+                className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+              >
+                <LogOut size={18} />
+                <span>Disconnect Wallet</span>
+              </button>
+              <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
+                {formatAddress(walletInfo.address)}
+              </span>
+            </div>
           </div>
           
-          {/* Wallet Info - Moved here for better alignment */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors duration-300 lg:max-w-md">
-            <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Connected Wallet</h3>
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <User size={14} className="text-gray-500" />
-                    <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono text-gray-900 dark:text-gray-100">
-                      {formatAddress(walletInfo.address)}
-                    </code>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Globe size={14} className="text-blue-500" />
-                    <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">
-                      {walletInfo.network}
-                    </span>
+          {/* Wallet Info Card */}
+          <div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors duration-300">
+              <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Connected Wallet</h3>
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <User size={14} className="text-gray-500" />
+                      <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono text-gray-900 dark:text-gray-100">
+                        {formatAddress(walletInfo.address)}
+                      </code>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Globe size={14} className="text-blue-500" />
+                      <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">
+                        {walletInfo.network}
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
               </div>
-              <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
             </div>
           </div>
         </div>

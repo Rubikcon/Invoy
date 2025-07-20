@@ -136,6 +136,7 @@ function App() {
             walletInfo={walletInfo}
             invoices={invoices}
             onCreateInvoice={handleCreateInvoice}
+            onDisconnectWallet={disconnectWallet}
           />
         );
       case 'employer-invoice':

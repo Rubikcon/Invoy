@@ -89,20 +89,7 @@ export default function Navbar({
           {/* Dark Mode Toggle & Connect Wallet Button */}
           <div className="hidden md:flex items-center space-x-4">
             <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
-            {isWalletConnected ? (
-              <div className="flex flex-col items-end">
-                <button
-                  onClick={onDisconnectWallet}
-                  className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
-                >
-                  <LogOut size={18} />
-                  <span>Disconnect</span>
-                </button>
-                <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
-                  {formatAddress(walletAddress)}
-                </span>
-              </div>
-            ) : (
+            {!isWalletConnected && (
               <button
                 onClick={onConnectWallet}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
@@ -139,21 +126,8 @@ export default function Navbar({
               ))}
               <div className="flex items-center justify-between mt-4">
                 <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
-                <div className="flex flex-col items-end">
-                  {isWalletConnected ? (
-                    <>
-                      <button
-                        onClick={onDisconnectWallet}
-                        className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
-                      >
-                        <LogOut size={16} />
-                        <span>Disconnect</span>
-                      </button>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
-                        {formatAddress(walletAddress)}
-                      </span>
-                    </>
-                  ) : (
+                {!isWalletConnected && (
+                  <div className="flex flex-col items-end">
                     <button
                       onClick={onConnectWallet}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
@@ -161,8 +135,8 @@ export default function Navbar({
                       <Wallet size={16} />
                       <span>Connect</span>
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
