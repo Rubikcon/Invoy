@@ -73,6 +73,11 @@ function App() {
     await connectWallet();
   };
 
+  const handleDisconnectWallet = () => {
+    disconnectWallet();
+    setCurrentView('landing');
+  };
+
   // Auto-redirect to dashboard when wallet connects successfully
   React.useEffect(() => {
     if (walletInfo.isConnected) {
@@ -136,7 +141,7 @@ function App() {
             walletInfo={walletInfo}
             invoices={invoices}
             onCreateInvoice={handleCreateInvoice}
-            onDisconnectWallet={disconnectWallet}
+            onDisconnectWallet={handleDisconnectWallet}
           />
         );
       case 'employer-invoice':
