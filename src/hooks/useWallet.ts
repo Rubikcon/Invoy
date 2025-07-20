@@ -14,6 +14,7 @@ export function useWallet() {
     isConnected: false
   });
   const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string>('');
 
   // Check if wallet is already connected on page load
   useEffect(() => {
@@ -42,11 +43,12 @@ export function useWallet() {
 
   const connectWallet = async () => {
     if (typeof window.ethereum === 'undefined') {
-      alert('MetaMask is not installed. Please install MetaMask to continue.');
+      setConnectionError('MetaMask is not installed. Please install MetaMask to continue.');
       return;
     }
 
     setIsConnecting(true);
+    setConnectionError('');
     
     try {
       // Request account access
@@ -95,9 +97,9 @@ export function useWallet() {
     } catch (error: any) {
       console.error('Error connecting wallet:', error);
       if (error.code === 4001) {
-        alert('Please connect to MetaMask.');
+        setConnectionError('Please connect to MetaMask.');
       } else {
-        alert('An error occurred while connecting to your wallet.');
+        setConnectionError('An error occurred while connecting to your wallet.');
       }
     } finally {
       setIsConnecting(false);
@@ -124,6 +126,7 @@ export function useWallet() {
       network: '',
       isConnected: false
     });
+    setConnectionError('');
     
     // Clear any stored wallet connection data
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -139,6 +142,7 @@ export function useWallet() {
   return {
     walletInfo,
     isConnecting,
+    connectionError,
     connectWallet,
     disconnectWallet,
     formatAddress

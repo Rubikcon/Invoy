@@ -9,9 +9,10 @@ interface HeroProps {
   isWalletConnected: boolean;
   isConnecting?: boolean;
   walletAddress?: string;
+  connectionError?: string;
 }
 
-export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnected, isConnecting, walletAddress }: HeroProps) {
+export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnected, isConnecting, walletAddress, connectionError }: HeroProps) {
   const { ref: heroRef, isVisible: heroVisible } = useScrollAnimation(0.1);
 
   const formatAddress = (address: string): string => {
@@ -88,6 +89,22 @@ export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnect
                     <p className="text-green-800 dark:text-green-200 font-medium">Wallet Connected</p>
                     <p className="text-green-600 dark:text-green-400 text-sm font-mono">
                       {formatAddress(walletAddress || '')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {connectionError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 animate-slide-down">
+                <div className="flex items-center space-x-3">
+                  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">!</span>
+                  </div>
+                  <div>
+                    <p className="text-red-800 dark:text-red-200 font-medium">Connection Error</p>
+                    <p className="text-red-600 dark:text-red-400 text-sm">
+                      {connectionError}
                     </p>
                   </div>
                 </div>

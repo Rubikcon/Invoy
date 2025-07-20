@@ -11,6 +11,7 @@ interface NavbarProps {
   walletAddress: string;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  connectionError?: string;
 }
 
 export default function Navbar({ 
@@ -21,7 +22,8 @@ export default function Navbar({
   onDisconnectWallet,
   walletAddress,
   isDarkMode, 
-  onToggleDarkMode 
+  onToggleDarkMode,
+  connectionError
 }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 

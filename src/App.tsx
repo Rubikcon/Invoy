@@ -15,7 +15,7 @@ import EmployerInvoice from './components/pages/EmployerInvoice';
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { walletInfo, isConnecting, connectWallet, disconnectWallet } = useWallet();
+  const { walletInfo, isConnecting, connectionError, connectWallet, disconnectWallet } = useWallet();
   const [currentView, setCurrentView] = React.useState<View>('landing');
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [invoices, setInvoices] = React.useState<Invoice[]>([
@@ -69,12 +69,16 @@ function App() {
     setIsCreateModalOpen(true);
   };
 
-  // Auto-redirect to dashboard when wallet connects
+  const handleConnectWallet = async () => {
+    await connectWallet();
+  };
+
+  // Auto-redirect to dashboard when wallet connects successfully
   React.useEffect(() => {
-    if (walletInfo.isConnected && currentView === 'landing') {
+    if (walletInfo.isConnected) {
       setCurrentView('dashboard');
     }
-  }, [walletInfo.isConnected, currentView]);
+  }, [walletInfo.isConnected]);
 
   const handleSubmitInvoice = (data: CreateInvoiceData) => {
     const newInvoice: Invoice = {
@@ -147,11 +151,12 @@ function App() {
         return (
           <>
             <Hero
-              onConnectWallet={handleCreateInvoice}
+              onConnectWallet={handleConnectWallet}
               onCreateInvoice={handleCreateInvoice}
               isWalletConnected={walletInfo.isConnected}
               isConnecting={isConnecting}
               walletAddress={walletInfo.address}
+              connectionError={connectionError}
             />
             <Features />
             <Testimonials />
@@ -168,11 +173,12 @@ function App() {
         currentView={currentView}
         isWalletConnected={walletInfo.isConnected}
         onViewChange={setCurrentView}
-        onConnectWallet={connectWallet}
+        onConnectWallet={handleConnectWallet}
         onDisconnectWallet={disconnectWallet}
         walletAddress={walletInfo.address}
         isDarkMode={isDarkMode}
         onToggleDarkMode={toggleDarkMode}
+        connectionError={connectionError}
       />
 
       {renderCurrentView()}
