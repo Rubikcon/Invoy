@@ -15,7 +15,7 @@ import EmployerInvoice from './components/pages/EmployerInvoice';
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { walletInfo, isConnecting, connectWallet } = useWallet();
+  const { walletInfo, isConnecting, connectWallet, disconnectWallet } = useWallet();
   const [currentView, setCurrentView] = React.useState<View>('landing');
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [invoices, setInvoices] = React.useState<Invoice[]>([
