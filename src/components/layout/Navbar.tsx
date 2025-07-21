@@ -164,6 +164,32 @@ export default function Navbar({
                     {item.label}
                   </button>
                 ))
+              ) : (
+                // Show only Dashboard link when wallet is connected
+                <button
+                  onClick={() => onViewChange('dashboard')}
+                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
+                >
+                  Dashboard
+                </button>
+              )}
+              
+              <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
+                {!isWalletConnected && (
+                  <button
+                    onClick={onConnectWallet}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+                  >
+                    <Wallet size={16} />
+                    <span>Connect</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </nav>
   );
 }
