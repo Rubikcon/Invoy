@@ -48,6 +48,7 @@ export default function Navbar({
 
   const navItems = [
     { label: 'Home', action: () => scrollToSection('hero') },
+    { label: 'About', action: () => onViewChange('about-us') },
     { label: 'How It Works', action: () => scrollToSection('how-it-works') },
     { label: 'Features', action: () => scrollToSection('features') },
     { label: 'Testimonials', action: () => scrollToSection('testimonials') },

@@ -52,6 +52,12 @@ export default function Footer() {
               <a href="#hero" className="block text-gray-300 hover:text-white transition-colors duration-200">
                 Home
               </a>
+              <button 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="block text-gray-300 hover:text-white transition-colors duration-200 text-left"
+              >
+                About
+              </button>
               <a href="#features" className="block text-gray-300 hover:text-white transition-colors duration-200">
                 Features
               </a>

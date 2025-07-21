@@ -12,6 +12,7 @@ import FAQ from './components/landing/FAQ';
 import Dashboard from './components/dashboard/Dashboard';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import EmployerInvoice from './components/pages/EmployerInvoice';
+import AboutUs from './components/pages/AboutUs';
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -153,6 +154,12 @@ function App() {
             onBack={() => setCurrentView('dashboard')}
           />
         ) : null;
+      case 'about-us':
+        return (
+          <AboutUs
+            onBack={() => setCurrentView('landing')}
+          />
+        );
       default:
         return (
           <>
