@@ -62,7 +62,7 @@ function App() {
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
 
   const handleCreateInvoice = () => {
-    if (!walletInfo.isConnected) {
+    if (!walletInfo.isConnected && !isConnecting) {
       connectWallet();
       return;
     }
