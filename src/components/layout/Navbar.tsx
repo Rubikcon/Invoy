@@ -98,6 +98,19 @@ export default function Navbar({
                 <span>Connect Wallet</span>
               </button>
             )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+
         {/* Desktop Navigation - Only show when wallet is not connected */}
         {!isWalletConnected && (
           <div className="hidden md:flex items-center space-x-8">
