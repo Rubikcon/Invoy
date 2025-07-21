@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Users, Target, Zap, Shield, Globe, Heart } from 'lucide-react';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
+import Footer from '../layout/Footer';
 
 interface AboutUsProps {
   onBack: () => void;
@@ -38,21 +39,19 @@ export default function AboutUs({ onBack }: AboutUsProps) {
 
   const team = [
     {
-      name: "Alex Chen",
-      role: "Founder & CEO",
-      bio: "Former blockchain engineer with 5+ years in DeFi. Passionate about making Web3 accessible to everyone.",
+      name: "Ozioma Onukogu",
       avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop"
     },
     {
-      name: "Sarah Johnson",
-      role: "CTO",
-      bio: "Full-stack developer and smart contract specialist. Previously led engineering at two successful Web3 startups.",
+      name: "Egbu Joy",
       avatar: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop"
     },
     {
-      name: "Marcus Williams",
-      role: "Head of Product",
-      bio: "Product strategist with expertise in fintech and blockchain. Focused on creating intuitive user experiences.",
+      name: "Sonia Usiwo",
+      avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop"
+    },
+    {
+      name: "Uche David",
       avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop"
     }
   ];
@@ -123,19 +122,19 @@ export default function AboutUs({ onBack }: AboutUsProps) {
               <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-purple-900/20 rounded-2xl p-8 border border-gray-200 dark:border-gray-700">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">10K+</div>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">500+</div>
                     <div className="text-sm text-gray-600 dark:text-gray-300">Active Users</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">$5M+</div>
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">$50K+</div>
                     <div className="text-sm text-gray-600 dark:text-gray-300">Processed</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">99.9%</div>
+                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">98%</div>
                     <div className="text-sm text-gray-600 dark:text-gray-300">Success Rate</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">50+</div>
+                    <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">15+</div>
                     <div className="text-sm text-gray-600 dark:text-gray-300">Countries</div>
                   </div>
                 </div>
@@ -205,7 +204,7 @@ export default function AboutUs({ onBack }: AboutUsProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {team.map((member, index) => (
               <div
                 key={index}
@@ -221,12 +220,6 @@ export default function AboutUs({ onBack }: AboutUsProps) {
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                     {member.name}
                   </h3>
-                  <p className="text-blue-600 dark:text-blue-400 font-medium mb-4">
-                    {member.role}
-                  </p>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                    {member.bio}
-                  </p>
                 </div>
               </div>
             ))}
@@ -249,6 +242,8 @@ export default function AboutUs({ onBack }: AboutUsProps) {
           </p>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }
