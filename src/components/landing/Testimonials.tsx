@@ -9,23 +9,23 @@ export default function Testimonials() {
   const testimonials = [
     {
       quote: "Invoy helped me avoid chain errors and get paid faster. The verification system caught a potential mistake that would have cost me 2 ETH.",
-      author: "Amina Hassan",
+      author: "Uche David",
       role: "Smart Contract Developer",
-      avatar: "https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
+      avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
       rating: 5
     },
     {
       quote: "The approval system gave my team full visibility and control. We can review work details before processing payments, which builds trust.",
-      author: "David Chen",
+      author: "Sonia Usiwo",
       role: "DAO Lead",
-      avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
+      avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
       rating: 5
     },
     {
       quote: "Finally, a professional way to handle crypto payments. No more screenshots of wallet addresses in chat apps. Invoy makes it seamless.",
-      author: "Sarah Rodriguez",
+      author: "Joy Michael",
       role: "Web3 Designer",
-      avatar: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
+      avatar: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
       rating: 5
     }
   ];
