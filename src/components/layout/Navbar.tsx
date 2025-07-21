@@ -122,33 +122,6 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Desktop Navigation - Only show when wallet is not connected */}
-        {!isWalletConnected && (
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.slice(0, -1).map((item) => (
-              <button
-                key={item.label}
-                onClick={item.action}
-                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Dashboard Link - Only show when wallet is connected */}
-        {isWalletConnected && (
-          <div className="hidden md:flex items-center space-x-8">
-            <button
-              onClick={() => onViewChange('dashboard')}
-              className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
-            >
-              Dashboard
-            </button>
-          </div>
-        )}
-
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
