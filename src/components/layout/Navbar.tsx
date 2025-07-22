@@ -140,20 +140,16 @@ export default function Navbar({
             </div>
           )}
 
+          {/* Dashboard title when wallet is connected */}
           {isWalletConnected && (
-            <div className="hidden md:flex items-center space-x-8">
-              <button
-                onClick={() => onViewChange('dashboard')}
-                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
-              >
-                Dashboard
-              </button>
+            <div className="hidden md:block">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
             </div>
           )}
 
           {/* Dark Mode Toggle & Connect Wallet Button */}
           <div className="hidden md:flex items-center space-x-4">
-            <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
+            {!isWalletConnected && <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />}
             {!isWalletConnected ? (
               <button
                 onClick={onConnectWallet}
@@ -165,6 +161,7 @@ export default function Navbar({
             ) : (
               <button
                 onClick={onDisconnectWallet}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
                 className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
               >
                 <LogOut size={16} />
@@ -188,30 +185,22 @@ export default function Navbar({
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col space-y-3">
-              {!isWalletConnected ? (
-                navItems.slice(0, -1).map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={item.action}
-                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
-                  >
-                    {item.label}
-                  </button>
-                ))
-              ) : (
-                <button
-                  onClick={() => {
-                    onViewChange('dashboard');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
-                >
-                  Dashboard
-                </button>
+              {!isWalletConnected && (
+                <>
+                  {navItems.slice(0, -1).map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={item.action}
+                      className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </>
               )}
               
-              <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
-                <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
+              <div className={`flex items-center ${isWalletConnected ? 'justify-end' : 'justify-between'} pt-3 border-t border-gray-200 dark:border-gray-700`}>
+                {!isWalletConnected && <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />}
                 {!isWalletConnected ? (
                   <button
                     onClick={() => {
@@ -224,18 +213,16 @@ export default function Navbar({
                     <span>Connect</span>
                   </button>
                 ) : (
-                  <div className="flex flex-col items-end space-y-2">
-                    <button
-                      onClick={() => {
-                        onDisconnectWallet();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-1"
-                    >
-                      <LogOut size={14} />
-                      <span>Disconnect</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      onDisconnectWallet();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-1"
+                  >
+                    <LogOut size={14} />
+                    <span>Disconnect</span>
+                  </button>
                 )}
               </div>
             </div>
