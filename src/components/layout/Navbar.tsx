@@ -68,65 +68,59 @@ export default function Navbar({
             className="flex items-center space-x-2 cursor-pointer"
             onClick={() => onViewChange('landing')}
           >
-            <div className="w-10 h-10 relative">
+            <div className="w-8 h-8 relative flex-shrink-0">
               <svg viewBox="0 0 32 32" className="w-full h-full">
                 <defs>
                   <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#3B82F6" />
-                    <stop offset="50%" stopColor="#6366F1" />
+                    <stop offset="50%" stopColor="#8B5CF6" />
                     <stop offset="100%" stopColor="#8B5CF6" />
                   </linearGradient>
-                  <linearGradient id="navAccentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#06B6D4" />
-                    <stop offset="100%" stopColor="#0891B2" />
+                  <linearGradient id="navInvoiceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" />
+                    <stop offset="100%" stopColor="#059669" />
                   </linearGradient>
                 </defs>
                 
-                {/* Main invoice document */}
+                {/* Invoice document background */}
                 <path
-                  d="M5 3 L23 3 L25 5 L25 29 L5 29 Z"
+                  d="M6 4 L24 4 L26 6 L26 28 L6 28 Z"
                   fill="url(#navLogoGradient)"
                   className="drop-shadow-lg"
                 />
                 
-                {/* Folded corner detail */}
+                {/* Document corner fold */}
                 <path
-                  d="M23 3 L23 5 L25 5 Z"
-                  fill="url(#navAccentGradient)"
-                  opacity="0.8"
+                  d="M24 4 L24 6 L26 6 Z"
+                  fill="url(#navInvoiceGradient)"
+                  opacity="0.7"
                 />
                 
-                {/* Invoice line items */}
-                <g stroke="white" strokeWidth="1.2" opacity="0.9" fill="none">
-                  <line x1="8" y1="9" x2="19" y2="9" />
-                  <line x1="8" y1="12" x2="22" y2="12" />
-                  <line x1="8" y1="15" x2="17" y2="15" />
+                {/* Invoice content lines */}
+                <g stroke="white" strokeWidth="1.5" opacity="0.8" fill="none">
+                  <line x1="9" y1="10" x2="20" y2="10" />
+                  <line x1="9" y1="13" x2="23" y2="13" />
+                  <line x1="9" y1="16" x2="18" y2="16" />
                 </g>
                 
-                {/* Web3 crypto elements */}
-                <g fill="white" opacity="0.95">
-                  {/* Ethereum diamond */}
-                  <path d="M15 18 L12.5 20 L15 21.2 L17.5 20 Z" />
-                  <path d="M15 17.5 L12.5 19.5 L15 16.5 L17.5 19.5 Z" opacity="0.7" />
+                {/* Crypto/Web3 elements */}
+                <g fill="white" opacity="0.9">
+                  {/* Ethereum symbol */}
+                  <path d="M16 19 L13 21 L16 22.5 L19 21 Z" />
+                  <path d="M16 18.5 L13 20.5 L16 17 L19 20.5 Z" opacity="0.6" />
                   
-                  {/* Blockchain network nodes */}
-                  <circle cx="10" cy="25" r="0.8" />
-                  <circle cx="15" cy="25" r="0.8" />
-                  <circle cx="20" cy="25" r="0.8" />
+                  {/* Blockchain dots */}
+                  <circle cx="11" cy="25" r="1" />
+                  <circle cx="16" cy="25" r="1" />
+                  <circle cx="21" cy="25" r="1" />
                   
-                  {/* Network connections */}
-                  <line x1="10.8" y1="25" x2="14.2" y2="25" stroke="white" strokeWidth="0.4" opacity="0.7" />
-                  <line x1="15.8" y1="25" x2="19.2" y2="25" stroke="white" strokeWidth="0.4" opacity="0.7" />
+                  {/* Connection lines */}
+                  <line x1="12" y1="25" x2="15" y2="25" stroke="white" strokeWidth="0.5" opacity="0.6" />
+                  <line x1="17" y1="25" x2="20" y2="25" stroke="white" strokeWidth="0.5" opacity="0.6" />
                 </g>
-                
-                {/* Subtle glow animation */}
-                <circle cx="15" cy="19" r="3.5" fill="none" stroke="white" strokeWidth="0.2" opacity="0.15">
-                  <animate attributeName="r" values="3.5;4.2;3.5" dur="4s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.15;0.05;0.15" dur="4s" repeatCount="indefinite" />
-                </circle>
               </svg>
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Invoy
             </span>
           </div>
