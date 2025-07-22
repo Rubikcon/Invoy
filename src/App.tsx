@@ -22,51 +22,76 @@ import { sendInvoiceEmail, copyInvoiceDetails } from './services/emailService';
 function EmployerInvoiceRoute() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
+  const [invoice, setInvoice] = React.useState<Invoice | null>(null);
+  const [loading, setLoading] = React.useState(true);
   
-  // Mock invoice data - in real app, this would fetch from API
-  const mockInvoices: Invoice[] = [
-    {
-      id: 'INV-001',
-      employerEmail: 'sarah@techcorp.com',
-      amount: '2.5',
-      status: 'Pending',
-      freelancerName: 'Alex Chen',
-      freelancerEmail: 'alex@example.com',
-      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
-      network: 'Ethereum',
-      role: 'Frontend Developer',
-      description: 'Built responsive landing page with React and Tailwind CSS, including mobile optimization and performance improvements.',
-      createdAt: new Date('2025-01-10')
-    },
-    {
-      id: 'INV-002',
-      employerEmail: 'mike@startupxyz.com',
-      amount: '1.8',
-      status: 'Pending',
-      freelancerName: 'Alex Chen',
-      freelancerEmail: 'alex@example.com',
-      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
-      network: 'Polygon',
-      role: 'Smart Contract Developer',
-      description: 'Deployed and tested smart contracts for NFT marketplace, including minting functionality and royalty distribution.',
-      createdAt: new Date('2025-01-12')
-    },
-    {
-      id: 'INV-003',
-      employerEmail: 'team@defiproject.io',
-      amount: '3.2',
-      status: 'Pending',
-      freelancerName: 'Alex Chen',
-      freelancerEmail: 'alex@example.com',
-      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
-      network: 'Arbitrum',
-      role: 'DeFi Specialist',
-      description: 'Integrated yield farming protocols and implemented automated liquidity provision strategies for DeFi platform.',
-      createdAt: new Date('2025-01-15')
+  // Load invoice from storage
+  React.useEffect(() => {
+    if (invoiceId) {
+      const storedInvoice = invoiceStorage.getById(invoiceId);
+      if (storedInvoice) {
+        // Convert stored invoice to Invoice type
+        const convertedInvoice: Invoice = {
+          ...storedInvoice,
+          createdAt: new Date(storedInvoice.createdAt)
+        };
+        setInvoice(convertedInvoice);
+      }
+      setLoading(false);
     }
-  ];
+  }, [invoiceId]);
   
-  const invoice = mockInvoices.find(inv => inv.id === invoiceId);
+  const handleApprove = async () => {
+    if (!invoice || !invoiceId) return;
+    
+    // Update invoice status in storage
+    invoiceStorage.updateStatus(invoiceId, 'Approved');
+    
+    // Send notification email to freelancer
+    await sendStatusUpdateEmail({
+      freelancerEmail: invoice.freelancerEmail,
+      freelancerName: invoice.freelancerName,
+      invoiceId: invoice.id,
+      status: 'Approved',
+      employerEmail: invoice.employerEmail,
+      amount: invoice.amount
+    });
+    
+    // Show success page instead of redirecting to dashboard
+    setInvoice(prev => prev ? { ...prev, status: 'Approved' } : null);
+  };
+  
+  const handleReject = async (reason: string) => {
+    if (!invoice || !invoiceId) return;
+    
+    // Update invoice status in storage
+    invoiceStorage.updateStatus(invoiceId, 'Rejected', reason);
+    
+    // Send notification email to freelancer
+    await sendStatusUpdateEmail({
+      freelancerEmail: invoice.freelancerEmail,
+      freelancerName: invoice.freelancerName,
+      invoiceId: invoice.id,
+      status: 'Rejected',
+      employerEmail: invoice.employerEmail,
+      amount: invoice.amount,
+      rejectionReason: reason
+    });
+    
+    // Show rejection confirmation instead of redirecting
+    setInvoice(prev => prev ? { ...prev, status: 'Rejected' } : null);
+  };
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading invoice...</p>
+        </div>
+      </div>
+    );
+  }
   
   if (!invoice) {
     return (
@@ -84,18 +109,6 @@ function EmployerInvoiceRoute() {
       </div>
     );
   }
-  
-  const handleApprove = () => {
-    // In real app, this would make API call
-    alert('✅ Invoice approved! Payment is being processed.');
-    navigate('/');
-  };
-  
-  const handleReject = (reason: string) => {
-    // In real app, this would make API call
-    alert(`❌ Invoice rejected. Reason: ${reason}`);
-    navigate('/');
-  };
   
   return (
     <EmployerInvoice
@@ -116,48 +129,20 @@ function App() {
   const [isEmailSetupModalOpen, setIsEmailSetupModalOpen] = React.useState(false);
   const [pendingEmailData, setPendingEmailData] = React.useState<any>(null);
   const [emailStatus, setEmailStatus] = React.useState<string>('');
-  const [invoices, setInvoices] = React.useState<Invoice[]>([
-    {
-      id: 'INV-001',
-      employerEmail: 'sarah@techcorp.com',
-      amount: '2.5',
-      status: 'Paid',
-      freelancerName: 'Alex Chen',
-      freelancerEmail: 'alex@example.com',
-      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
-      network: 'Ethereum',
-      role: 'Frontend Developer',
-      description: 'Built responsive landing page with React and Tailwind CSS, including mobile optimization and performance improvements.',
-      createdAt: new Date('2025-01-10')
-    },
-    {
-      id: 'INV-002',
-      employerEmail: 'mike@startupxyz.com',
-      amount: '1.8',
-      status: 'Approved',
-      freelancerName: 'Alex Chen',
-      freelancerEmail: 'alex@example.com',
-      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
-      network: 'Polygon',
-      role: 'Smart Contract Developer',
-      description: 'Deployed and tested smart contracts for NFT marketplace, including minting functionality and royalty distribution.',
-      createdAt: new Date('2025-01-12')
-    },
-    {
-      id: 'INV-003',
-      employerEmail: 'team@defiproject.io',
-      amount: '3.2',
-      status: 'Pending',
-      freelancerName: 'Alex Chen',
-      freelancerEmail: 'alex@example.com',
-      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
-      network: 'Arbitrum',
-      role: 'DeFi Specialist',
-      description: 'Integrated yield farming protocols and implemented automated liquidity provision strategies for DeFi platform.',
-      createdAt: new Date('2025-01-15')
-    }
-  ]);
+  const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+
+  // Load invoices from storage on component mount
+  React.useEffect(() => {
+    if (walletInfo.isConnected && walletInfo.address) {
+      const storedInvoices = invoiceStorage.getByFreelancer(walletInfo.address);
+      const convertedInvoices: Invoice[] = storedInvoices.map(stored => ({
+        ...stored,
+        createdAt: new Date(stored.createdAt)
+      }));
+      setInvoices(convertedInvoices);
+    }
+  }, [walletInfo.isConnected, walletInfo.address]);
 
   // Check if we're on an invoice route
   const isInvoiceRoute = location.pathname.startsWith('/invoice/');
@@ -200,6 +185,13 @@ function App() {
       description: data.description,
       createdAt: new Date()
     };
+    
+    // Save to storage
+    const storedInvoice: StoredInvoice = {
+      ...newInvoice,
+      createdAt: newInvoice.createdAt.toISOString()
+    };
+    invoiceStorage.save(storedInvoice);
     
     setInvoices(prev => [newInvoice, ...prev]);
     

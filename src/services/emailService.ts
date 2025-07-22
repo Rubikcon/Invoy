@@ -95,6 +95,67 @@ This email was sent via Invoy - Web3 Invoicing Platform`);
   }
 };
 
+// Send status update email to freelancer
+export const sendStatusUpdateEmail = async (emailData: {
+  freelancerEmail: string;
+  freelancerName: string;
+  invoiceId: string;
+  status: 'Approved' | 'Rejected';
+  employerEmail: string;
+  amount: string;
+  rejectionReason?: string;
+}): Promise<{ success: boolean; message: string }> => {
+  try {
+    const subject = encodeURIComponent(
+      `Invoice ${emailData.invoiceId} ${emailData.status} - Status Update`
+    );
+    
+    const statusMessage = emailData.status === 'Approved' 
+      ? `Great news! Your invoice has been approved and payment is being processed.`
+      : `Your invoice has been rejected. ${emailData.rejectionReason ? `Reason: ${emailData.rejectionReason}` : ''}`;
+    
+    const body = encodeURIComponent(`Hi ${emailData.freelancerName},
+
+${statusMessage}
+
+Invoice Details:
+• Invoice ID: ${emailData.invoiceId}
+• Amount: ${emailData.amount} ETH
+• Status: ${emailData.status}
+• Employer: ${emailData.employerEmail}
+${emailData.rejectionReason ? `• Rejection Reason: ${emailData.rejectionReason}` : ''}
+
+${emailData.status === 'Approved' 
+  ? 'You should receive your payment shortly. Thank you for your work!'
+  : 'Please review the feedback and feel free to create a new invoice if needed.'
+}
+
+Best regards,
+Invoy Team
+
+---
+This is an automated notification from Invoy - Web3 Invoicing Platform`);
+
+    const mailtoLink = `mailto:${emailData.freelancerEmail}?subject=${subject}&body=${body}`;
+    
+    // For demo purposes, we'll show a notification instead of opening email
+    // In production, this would use a real email service
+    console.log('Status update email would be sent to:', emailData.freelancerEmail);
+    
+    return { 
+      success: true, 
+      message: `Status update notification sent to ${emailData.freelancerName}` 
+    };
+
+  } catch (error) {
+    console.error('Failed to send status update email:', error);
+    return { 
+      success: false, 
+      message: 'Failed to send status update notification.' 
+    };
+  }
+};
+
 // Alternative: Copy to clipboard function
 export const copyInvoiceDetails = async (emailData: EmailData): Promise<{ success: boolean; message: string }> => {
   try {

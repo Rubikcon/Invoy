@@ -312,13 +312,26 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
             {/* Status Message for Non-Pending Invoices */}
             {invoice.status !== 'Pending' && (
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className={`${statusInfo.bgColor} ${statusInfo.borderColor} border rounded-lg p-4 text-center`}>
+                <div className={`${statusInfo.bgColor} ${statusInfo.borderColor} border rounded-lg p-6 text-center`}>
                   <StatusIcon size={32} className={`text-${statusInfo.color}-600 dark:text-${statusInfo.color}-400 mx-auto mb-2`} />
-                  <p className={`font-medium ${statusInfo.textColor}`}>
+                  <h3 className={`text-lg font-semibold ${statusInfo.textColor} mb-2`}>
                     {invoice.status === 'Paid' && 'Payment completed successfully!'}
                     {invoice.status === 'Approved' && 'Payment is being processed...'}
                     {invoice.status === 'Rejected' && 'This invoice has been rejected.'}
+                  </h3>
+                  <p className={`${statusInfo.textColor} opacity-80 mb-4`}>
+                    {invoice.status === 'Paid' && 'The freelancer has been notified and should receive payment shortly.'}
+                    {invoice.status === 'Approved' && 'The freelancer has been notified. Payment will be processed within 24 hours.'}
+                    {invoice.status === 'Rejected' && 'The freelancer has been notified with your feedback.'}
                   </p>
+                  <div className="text-center">
+                    <button
+                      onClick={() => window.close()}
+                      className="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200"
+                    >
+                      Close Window
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
