@@ -74,7 +74,7 @@ export default function Navbar({
                   <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#3B82F6" />
                     <stop offset="50%" stopColor="#8B5CF6" />
-                    <stop offset="100%" stopColor="#8B5CF6" />
+                    <stop offset="100%" stopColor="#06B6D4" />
                   </linearGradient>
                   <linearGradient id="navInvoiceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#10B981" />
@@ -97,7 +97,7 @@ export default function Navbar({
                 />
                 
                 {/* Invoice content lines */}
-                <g stroke="white" strokeWidth="1.5" opacity="0.8" fill="none">
+                <g stroke="white" strokeWidth="1" opacity="0.8" fill="none">
                   <line x1="9" y1="10" x2="20" y2="10" />
                   <line x1="9" y1="13" x2="23" y2="13" />
                   <line x1="9" y1="16" x2="18" y2="16" />
@@ -110,13 +110,13 @@ export default function Navbar({
                   <path d="M16 18.5 L13 20.5 L16 17 L19 20.5 Z" opacity="0.6" />
                   
                   {/* Blockchain dots */}
-                  <circle cx="11" cy="25" r="1" />
-                  <circle cx="16" cy="25" r="1" />
-                  <circle cx="21" cy="25" r="1" />
+                  <circle cx="11" cy="25" r="0.8" />
+                  <circle cx="16" cy="25" r="0.8" />
+                  <circle cx="21" cy="25" r="0.8" />
                   
                   {/* Connection lines */}
-                  <line x1="12" y1="25" x2="15" y2="25" stroke="white" strokeWidth="0.5" opacity="0.6" />
-                  <line x1="17" y1="25" x2="20" y2="25" stroke="white" strokeWidth="0.5" opacity="0.6" />
+                  <line x1="12" y1="25" x2="15" y2="25" stroke="white" strokeWidth="0.4" opacity="0.6" />
+                  <line x1="17" y1="25" x2="20" y2="25" stroke="white" strokeWidth="0.4" opacity="0.6" />
                 </g>
               </svg>
             </div>
@@ -127,36 +127,21 @@ export default function Navbar({
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {!isWalletConnected && (
-              // Show all navigation links when wallet is not connected
-              navItems.slice(0, -1).map((item) => (
-                <button
-                  key={item.label}
-                  onClick={item.action}
-                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
-                >
-                  {item.label}
-                </button>
-              ))
-            )}
-            {!isWalletConnected && (
-              // Show all navigation links when wallet is not connected
-              navItems.slice(0, -1).map((item) => (
-                <button
-                  key={item.label}
-                  onClick={item.action}
-                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
-                >
-                  {item.label}
-                </button>
-              ))
-            )}
+            {navItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={item.action}
+                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
 
           {/* Dark Mode Toggle & Connect Wallet Button */}
           <div className="hidden md:flex items-center space-x-4">
             <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
-            {!isWalletConnected && (
+            {!isWalletConnected ? (
               <button
                 onClick={onConnectWallet}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
@@ -164,6 +149,19 @@ export default function Navbar({
                 <Wallet size={18} />
                 <span>Connect Wallet</span>
               </button>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-600 dark:text-gray-300 font-mono">
+                  {formatAddress(walletAddress)}
+                </span>
+                <button
+                  onClick={onDisconnectWallet}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <LogOut size={16} />
+                  <span>Disconnect</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -182,41 +180,45 @@ export default function Navbar({
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col space-y-3">
-              {!isWalletConnected && (
-                // Show all navigation links when wallet is not connected
-                navItems.slice(0, -1).map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={item.action}
-                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
-                  >
-                    {item.label}
-                  </button>
-                ))
-              )}
-              {!isWalletConnected && (
-                // Show all navigation links when wallet is not connected
-                navItems.slice(0, -1).map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={item.action}
-                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
-                  >
-                    {item.label}
-                  </button>
-                ))
-              )}
+              {navItems.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
+                >
+                  {item.label}
+                </button>
+              ))}
               
               <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
                 <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
-                {!isWalletConnected && (
+                {!isWalletConnected ? (
                   <button
-                    onClick={onConnectWallet}
+                    onClick={() => {
+                      onConnectWallet();
+                      setIsMobileMenuOpen(false);
+                    }}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
                   >
                     <Wallet size={16} />
                     <span>Connect</span>
                   </button>
+                ) : (
+                  <div className="flex flex-col items-end space-y-2">
+                    <span className="text-xs text-gray-600 dark:text-gray-300 font-mono">
+                      {formatAddress(walletAddress)}
+                    </span>
+                    <button
+                      onClick={() => {
+                        onDisconnectWallet();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-1"
+                    >
+                      <LogOut size={14} />
+                      <span>Disconnect</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
