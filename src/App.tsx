@@ -1,4 +1,5 @@
 import React from 'react';
+import { Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { View, WalletInfo, Invoice, CreateInvoiceData } from './types';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useWallet } from './hooks/useWallet';
@@ -17,7 +18,97 @@ import FreelancerInvoiceView from './components/pages/FreelancerInvoiceView';
 import EmailSetupModal from './components/modals/EmailSetupModal';
 import { sendInvoiceEmail, copyInvoiceDetails } from './services/emailService';
 
+// Component to handle employer invoice routes
+function EmployerInvoiceRoute() {
+  const { invoiceId } = useParams<{ invoiceId: string }>();
+  const navigate = useNavigate();
+  
+  // Mock invoice data - in real app, this would fetch from API
+  const mockInvoices: Invoice[] = [
+    {
+      id: 'INV-001',
+      employerEmail: 'sarah@techcorp.com',
+      amount: '2.5',
+      status: 'Pending',
+      freelancerName: 'Alex Chen',
+      freelancerEmail: 'alex@example.com',
+      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
+      network: 'Ethereum',
+      role: 'Frontend Developer',
+      description: 'Built responsive landing page with React and Tailwind CSS, including mobile optimization and performance improvements.',
+      createdAt: new Date('2025-01-10')
+    },
+    {
+      id: 'INV-002',
+      employerEmail: 'mike@startupxyz.com',
+      amount: '1.8',
+      status: 'Pending',
+      freelancerName: 'Alex Chen',
+      freelancerEmail: 'alex@example.com',
+      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
+      network: 'Polygon',
+      role: 'Smart Contract Developer',
+      description: 'Deployed and tested smart contracts for NFT marketplace, including minting functionality and royalty distribution.',
+      createdAt: new Date('2025-01-12')
+    },
+    {
+      id: 'INV-003',
+      employerEmail: 'team@defiproject.io',
+      amount: '3.2',
+      status: 'Pending',
+      freelancerName: 'Alex Chen',
+      freelancerEmail: 'alex@example.com',
+      walletAddress: '0x742d35Cc6634C0532925a3b8D84c2F3bBC3e3f3B',
+      network: 'Arbitrum',
+      role: 'DeFi Specialist',
+      description: 'Integrated yield farming protocols and implemented automated liquidity provision strategies for DeFi platform.',
+      createdAt: new Date('2025-01-15')
+    }
+  ];
+  
+  const invoice = mockInvoices.find(inv => inv.id === invoiceId);
+  
+  if (!invoice) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Invoice Not Found</h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">The invoice you're looking for doesn't exist or has been removed.</p>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
+          >
+            Go to Homepage
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  const handleApprove = () => {
+    // In real app, this would make API call
+    alert('✅ Invoice approved! Payment is being processed.');
+    navigate('/');
+  };
+  
+  const handleReject = (reason: string) => {
+    // In real app, this would make API call
+    alert(`❌ Invoice rejected. Reason: ${reason}`);
+    navigate('/');
+  };
+  
+  return (
+    <EmployerInvoice
+      invoice={invoice}
+      onApprove={handleApprove}
+      onReject={handleReject}
+      onBack={() => navigate('/')}
+    />
+  );
+}
+
 function App() {
+  const location = useLocation();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { walletInfo, isConnecting, connectionError, connectWallet, disconnectWallet } = useWallet();
   const [currentView, setCurrentView] = React.useState<View>('landing');
@@ -67,6 +158,9 @@ function App() {
     }
   ]);
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+
+  // Check if we're on an invoice route
+  const isInvoiceRoute = location.pathname.startsWith('/invoice/');
 
   const handleCreateInvoice = () => {
     if (!walletInfo.isConnected && !isConnecting) {
@@ -242,50 +336,60 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
-      <Navbar
-        currentView={currentView}
-        isWalletConnected={walletInfo.isConnected}
-        onViewChange={setCurrentView}
-        onConnectWallet={handleConnectWallet}
-        onDisconnectWallet={disconnectWallet}
-        walletAddress={walletInfo.address}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={toggleDarkMode}
-        connectionError={connectionError}
-      />
+    <Routes>
+      {/* Employer invoice route */}
+      <Route path="/invoice/:invoiceId" element={<EmployerInvoiceRoute />} />
+      
+      {/* Main app route */}
+      <Route path="/*" element={
+        <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+          {!isInvoiceRoute && (
+            <Navbar
+              currentView={currentView}
+              isWalletConnected={walletInfo.isConnected}
+              onViewChange={setCurrentView}
+              onConnectWallet={handleConnectWallet}
+              onDisconnectWallet={disconnectWallet}
+              walletAddress={walletInfo.address}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={toggleDarkMode}
+              connectionError={connectionError}
+            />
+          )}
 
-      {renderCurrentView()}
+          {renderCurrentView()}
 
-      {/* Email Status Message */}
-      {emailStatus && (
-        <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 max-w-sm z-50">
-          <p className="text-sm text-gray-900 dark:text-white">{emailStatus}</p>
+          {/* Email Status Message */}
+          {emailStatus && (
+            <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 max-w-sm z-50">
+              <p className="text-sm text-gray-900 dark:text-white">{emailStatus}</p>
+            </div>
+          )}
+
+          {currentView === 'landing' && <Footer />}
+
+          <CreateInvoiceModal
+            isOpen={isCreateModalOpen}
+            onClose={() => setIsCreateModalOpen(false)}
+            onSubmit={handleSubmitInvoice}
+            walletAddress={walletInfo.address}
+            currentNetwork={walletInfo.network}
+          />
+
+          <EmailSetupModal
+            isOpen={isEmailSetupModalOpen}
+            onClose={() => {
+              setIsEmailSetupModalOpen(false);
+              setPendingEmailData(null);
+            }}
+            onSendEmail={handleSendEmail}
+            onCopyEmail={handleCopyEmail}
+            employerEmail={pendingEmailData?.employerEmail || ''}
+            invoiceId={pendingEmailData?.invoiceId || ''}
+          />
         </div>
-      )}
-
-      {currentView === 'landing' && <Footer />}
-
-      <CreateInvoiceModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleSubmitInvoice}
-        walletAddress={walletInfo.address}
-        currentNetwork={walletInfo.network}
-      />
-
-      <EmailSetupModal
-        isOpen={isEmailSetupModalOpen}
-        onClose={() => {
-          setIsEmailSetupModalOpen(false);
-          setPendingEmailData(null);
-        }}
-        onSendEmail={handleSendEmail}
-        onCopyEmail={handleCopyEmail}
-        employerEmail={pendingEmailData?.employerEmail || ''}
-        invoiceId={pendingEmailData?.invoiceId || ''}
-      />
-    </div>
+      } />
+    </Routes>
   );
 }
 
