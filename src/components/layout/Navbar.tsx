@@ -145,7 +145,7 @@ export default function Navbar({
           {/* Dark Mode Toggle & Connect Wallet Button */}
           <div className="hidden md:flex items-center space-x-4">
             {!isWalletConnected && <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />}
-            {!isWalletConnected ? (
+            {!isWalletConnected && (
               <button
                 onClick={onConnectWallet}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
@@ -153,7 +153,7 @@ export default function Navbar({
                 <Wallet size={18} />
                 <span>Connect Wallet</span>
               </button>
-            ) : (
+            )}
               <button
                 onClick={onDisconnectWallet}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
@@ -195,7 +195,7 @@ export default function Navbar({
               
               <div className={`flex items-center ${isWalletConnected ? 'justify-end' : 'justify-between'} pt-3 border-t border-gray-200 dark:border-gray-700`}>
                 {!isWalletConnected && <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />}
-                {!isWalletConnected ? (
+                {!isWalletConnected && (
                   <button
                     onClick={() => {
                       onConnectWallet();
@@ -206,18 +206,8 @@ export default function Navbar({
                     <Wallet size={16} />
                     <span>Connect</span>
                   </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      onDisconnectWallet();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-1"
-                  >
-                    <LogOut size={14} />
-                    <span>Disconnect Wallet</span>
-                  </button>
                 )}
+              </div>
               </div>
             </div>
           </div>
