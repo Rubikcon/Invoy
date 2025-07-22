@@ -17,31 +17,47 @@ export default function Footer() {
                       <stop offset="50%" stopColor="#8B5CF6" />
                       <stop offset="100%" stopColor="#06B6D4" />
                     </linearGradient>
+                    <linearGradient id="footerInvoiceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#10B981" />
+                      <stop offset="100%" stopColor="#059669" />
+                    </linearGradient>
                   </defs>
                   
-                  {/* Outer hexagon */}
+                  {/* Invoice document background */}
                   <path
-                    d="M16 2 L26 8 L26 24 L16 30 L6 24 L6 8 Z"
+                    d="M6 4 L24 4 L26 6 L26 28 L6 28 Z"
                     fill="url(#footerLogoGradient)"
                     className="drop-shadow-lg"
                   />
                   
-                  {/* Inner blockchain links */}
+                  {/* Document corner fold */}
+                  <path
+                    d="M24 4 L24 6 L26 6 Z"
+                    fill="url(#footerInvoiceGradient)"
+                    opacity="0.7"
+                  />
+                  
+                  {/* Invoice content lines */}
+                  <g stroke="white" strokeWidth="1.5" opacity="0.8" fill="none">
+                    <line x1="9" y1="10" x2="20" y2="10" />
+                    <line x1="9" y1="13" x2="23" y2="13" />
+                    <line x1="9" y1="16" x2="18" y2="16" />
+                  </g>
+                  
+                  {/* Crypto/Web3 elements */}
                   <g fill="white" opacity="0.9">
-                    {/* Center node */}
-                    <circle cx="16" cy="16" r="2.5" />
+                    {/* Ethereum symbol */}
+                    <path d="M16 19 L13 21 L16 22.5 L19 21 Z" />
+                    <path d="M16 18.5 L13 20.5 L16 17 L19 20.5 Z" opacity="0.6" />
                     
-                    {/* Connected nodes */}
-                    <circle cx="12" cy="10" r="1.5" />
-                    <circle cx="20" cy="10" r="1.5" />
-                    <circle cx="12" cy="22" r="1.5" />
-                    <circle cx="20" cy="22" r="1.5" />
+                    {/* Blockchain dots */}
+                    <circle cx="11" cy="25" r="1" />
+                    <circle cx="16" cy="25" r="1" />
+                    <circle cx="21" cy="25" r="1" />
                     
                     {/* Connection lines */}
-                    <line x1="16" y1="16" x2="12" y2="10" stroke="white" strokeWidth="1" opacity="0.7" />
-                    <line x1="16" y1="16" x2="20" y2="10" stroke="white" strokeWidth="1" opacity="0.7" />
-                    <line x1="16" y1="16" x2="12" y2="22" stroke="white" strokeWidth="1" opacity="0.7" />
-                    <line x1="16" y1="16" x2="20" y2="22" stroke="white" strokeWidth="1" opacity="0.7" />
+                    <line x1="12" y1="25" x2="15" y2="25" stroke="white" strokeWidth="0.5" opacity="0.6" />
+                    <line x1="17" y1="25" x2="20" y2="25" stroke="white" strokeWidth="0.5" opacity="0.6" />
                   </g>
                 </svg>
               </div>
