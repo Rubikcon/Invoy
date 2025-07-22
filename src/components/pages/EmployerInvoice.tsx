@@ -35,6 +35,11 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <p className="text-blue-800 dark:text-blue-200 text-sm">
+              <strong>Employer Review Page:</strong> This is what employers see when they click the invoice link sent to their email.
+            </p>
+          </div>
           <button
             onClick={onBack}
             className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200 mb-4"
