@@ -68,7 +68,7 @@ export default function Navbar({
             className="flex items-center space-x-2 cursor-pointer"
             onClick={() => onViewChange('landing')}
           >
-            <div className="w-8 h-8 relative flex-shrink-0">
+            <div className="w-6 h-6 relative flex-shrink-0">
               <svg viewBox="0 0 32 32" className="w-full h-full">
                 <defs>
                   <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -120,7 +120,7 @@ export default function Navbar({
                 </g>
               </svg>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Invoy
             </span>
           </div>
