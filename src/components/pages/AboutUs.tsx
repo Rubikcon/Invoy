@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Users, Target, Zap, Shield, Globe, Heart } from 'lucide-react';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
+import CountUpAnimation from '../ui/CountUpAnimation';
 import Footer from '../layout/Footer';
 
 interface AboutUsProps {
@@ -11,7 +12,6 @@ export default function AboutUs({ onBack }: AboutUsProps) {
   const { ref: heroRef, isVisible: heroVisible } = useScrollAnimation(0.1);
   const { ref: storyRef, isVisible: storyVisible } = useScrollAnimation(0.2);
   const { ref: valuesRef, isVisible: valuesVisible } = useScrollAnimation(0.2);
-  const { ref: teamRef, isVisible: teamVisible } = useScrollAnimation(0.2);
 
   const values = [
     {
@@ -37,24 +37,6 @@ export default function AboutUs({ onBack }: AboutUsProps) {
     }
   ];
 
-  const team = [
-    {
-      name: "Ozioma Onukogu",
-      avatar: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop"
-    },
-    {
-      name: "Egbu Joy",
-      avatar: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop"
-    },
-    {
-      name: "Sonia Usiwo",
-      avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop"
-    },
-    {
-      name: "Uche David",
-      avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop"
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 pt-16 transition-colors duration-300">
@@ -122,19 +104,36 @@ export default function AboutUs({ onBack }: AboutUsProps) {
               <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-purple-900/20 rounded-2xl p-8 border border-gray-200 dark:border-gray-700">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">500+</div>
+                    <CountUpAnimation 
+                      end={500} 
+                      suffix="+" 
+                      className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2"
+                    />
                     <div className="text-sm text-gray-600 dark:text-gray-300">Active Users</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">$50K+</div>
+                    <CountUpAnimation 
+                      end={50} 
+                      prefix="$" 
+                      suffix="K+" 
+                      className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2"
+                    />
                     <div className="text-sm text-gray-600 dark:text-gray-300">Processed</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">98%</div>
+                    <CountUpAnimation 
+                      end={98} 
+                      suffix="%" 
+                      className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2"
+                    />
                     <div className="text-sm text-gray-600 dark:text-gray-300">Success Rate</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">15+</div>
+                    <CountUpAnimation 
+                      end={15} 
+                      suffix="+" 
+                      className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2"
+                    />
                     <div className="text-sm text-gray-600 dark:text-gray-300">Countries</div>
                   </div>
                 </div>
@@ -189,42 +188,6 @@ export default function AboutUs({ onBack }: AboutUsProps) {
         </div>
 
         {/* Our Team */}
-        <div 
-          ref={teamRef}
-          className={`mb-20 transition-all duration-1000 delay-700 ${
-            teamVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Meet Our Team
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              The passionate individuals building the future of Web3 payments
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {team.map((member, index) => (
-              <div
-                key={index}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group"
-                style={{ animationDelay: `${index * 200}ms` }}
-              >
-                <div className="text-center">
-                  <img
-                    src={member.avatar}
-                    alt={member.name}
-                    className="w-24 h-24 rounded-full object-cover mx-auto mb-6 group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    {member.name}
-                  </h3>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Mission Statement */}
         <div className="text-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-purple-900/20 rounded-2xl p-8 md:p-12 border border-gray-200 dark:border-gray-700">

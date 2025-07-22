@@ -76,7 +76,7 @@ export default function Navbar({
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {!isWalletConnected ? (
+            {!isWalletConnected && (
               // Show all navigation links when wallet is not connected
               navItems.slice(0, -1).map((item) => (
                 <button
@@ -87,14 +87,6 @@ export default function Navbar({
                   {item.label}
                 </button>
               ))
-            ) : (
-              // Show only Dashboard link when wallet is connected
-              <button
-                onClick={() => onViewChange('dashboard')}
-                className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
-              >
-                Dashboard
-              </button>
             )}
           </div>
 
@@ -127,7 +119,7 @@ export default function Navbar({
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col space-y-3">
-              {!isWalletConnected ? (
+              {!isWalletConnected && (
                 // Show all navigation links when wallet is not connected
                 navItems.slice(0, -1).map((item) => (
                   <button
@@ -138,14 +130,6 @@ export default function Navbar({
                     {item.label}
                   </button>
                 ))
-              ) : (
-                // Show only Dashboard link when wallet is connected
-                <button
-                  onClick={() => onViewChange('dashboard')}
-                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
-                >
-                  Dashboard
-                </button>
               )}
               
               <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
