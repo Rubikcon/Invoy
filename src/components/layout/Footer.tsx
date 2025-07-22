@@ -9,8 +9,41 @@ export default function Footer() {
           {/* About Invoy */}
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">I</span>
+              <div className="w-8 h-8 relative">
+                <svg viewBox="0 0 32 32" className="w-full h-full">
+                  <defs>
+                    <linearGradient id="footerLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#3B82F6" />
+                      <stop offset="50%" stopColor="#8B5CF6" />
+                      <stop offset="100%" stopColor="#06B6D4" />
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* Outer hexagon */}
+                  <path
+                    d="M16 2 L26 8 L26 24 L16 30 L6 24 L6 8 Z"
+                    fill="url(#footerLogoGradient)"
+                    className="drop-shadow-lg"
+                  />
+                  
+                  {/* Inner blockchain links */}
+                  <g fill="white" opacity="0.9">
+                    {/* Center node */}
+                    <circle cx="16" cy="16" r="2.5" />
+                    
+                    {/* Connected nodes */}
+                    <circle cx="12" cy="10" r="1.5" />
+                    <circle cx="20" cy="10" r="1.5" />
+                    <circle cx="12" cy="22" r="1.5" />
+                    <circle cx="20" cy="22" r="1.5" />
+                    
+                    {/* Connection lines */}
+                    <line x1="16" y1="16" x2="12" y2="10" stroke="white" strokeWidth="1" opacity="0.7" />
+                    <line x1="16" y1="16" x2="20" y2="10" stroke="white" strokeWidth="1" opacity="0.7" />
+                    <line x1="16" y1="16" x2="12" y2="22" stroke="white" strokeWidth="1" opacity="0.7" />
+                    <line x1="16" y1="16" x2="20" y2="22" stroke="white" strokeWidth="1" opacity="0.7" />
+                  </g>
+                </svg>
               </div>
               <span className="text-xl font-bold">Invoy</span>
             </div>
