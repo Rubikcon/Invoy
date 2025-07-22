@@ -93,7 +93,7 @@ export default function EmployerDashboard({ walletInfo, onDisconnectWallet, onVi
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Employer Dashboard</h1>
-              <p className="text-gray-600 dark:text-gray-300">Review and manage invoice payments</p>
+              <p className="text-gray-600 dark:text-gray-300">Review invoices and approve payments</p>
             </div>
             
             {/* Disconnect Wallet Button */}
