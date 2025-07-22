@@ -293,7 +293,7 @@ export default function EmployerDashboard({ onBack, onViewInvoice }: EmployerDas
                         </div>
                         <div className="flex items-center space-x-2">
                           <Mail size={14} className="text-gray-400" />
-                          <span className="text-gray-600 dark:text-gray-300 truncate">{invoice.employerEmail}</span>
+                          <span className="text-gray-600 dark:text-gray-300 truncate">{invoice.freelancerEmail}</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="font-medium text-gray-900 dark:text-white">{invoice.amount} ETH</span>
@@ -323,7 +323,7 @@ export default function EmployerDashboard({ onBack, onViewInvoice }: EmployerDas
                         Freelancer
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Employer Email
+                        Freelancer Email
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Amount
@@ -358,7 +358,7 @@ export default function EmployerDashboard({ onBack, onViewInvoice }: EmployerDas
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center space-x-2">
                               <Mail size={16} className="text-gray-400" />
-                              <span className="text-sm text-gray-900 dark:text-white">{invoice.employerEmail}</span>
+                              <span className="text-sm text-gray-900 dark:text-white">{invoice.freelancerEmail}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
