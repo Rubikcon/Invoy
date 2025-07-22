@@ -145,6 +145,18 @@ export default function Navbar({
                 </button>
               ))
             )}
+            {!isWalletConnected && (
+              // Show all navigation links when wallet is not connected
+              navItems.slice(0, -1).map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
+                >
+                  {item.label}
+                </button>
+              ))
+            )}
           </div>
 
           {/* Dark Mode Toggle & Connect Wallet Button */}
@@ -176,6 +188,18 @@ export default function Navbar({
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col space-y-3">
+              {!isWalletConnected && (
+                // Show all navigation links when wallet is not connected
+                navItems.slice(0, -1).map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={item.action}
+                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
+                  >
+                    {item.label}
+                  </button>
+                ))
+              )}
               {!isWalletConnected && (
                 // Show all navigation links when wallet is not connected
                 navItems.slice(0, -1).map((item) => (
