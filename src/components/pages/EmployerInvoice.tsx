@@ -447,7 +447,7 @@ export default function EmployerInvoice({ invoice: initialInvoice, onBack }: Emp
                   </p>
                   <div className="text-center">
                     <button
-                      onClick={() => setCurrentView('employer-dashboard')}
+                      onClick={onBack}
                       className="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200"
                     >
                       Back to Dashboard

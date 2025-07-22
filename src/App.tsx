@@ -309,7 +309,7 @@ function App() {
         return selectedInvoice ? (
           <EmployerInvoice
             invoice={selectedInvoice}
-            onBack={() => setCurrentView('landing')}
+            onBack={() => setCurrentView('employer-dashboard')}
           />
         ) : null;
       case 'about-us':
