@@ -36,6 +36,22 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
     }
   }, [searchTerm, invoices]);
 
+  // Refresh invoices periodically to catch status updates
+  React.useEffect(() => {
+    if (walletInfo.isConnected && walletInfo.address) {
+      const interval = setInterval(() => {
+        const storedInvoices = invoiceStorage.getByWalletAddress(walletInfo.address);
+        const convertedInvoices: Invoice[] = storedInvoices.map(stored => ({
+          ...stored,
+          createdAt: new Date(stored.createdAt)
+        }));
+        setInvoices(convertedInvoices);
+      }, 5000); // Refresh every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [walletInfo.isConnected, walletInfo.address]);
+
   const pendingInvoices = invoices.filter(inv => inv.status === 'Pending').length;
   const paidInvoices = invoices.filter(inv => inv.status === 'Paid').length;
   const totalAmount = invoices
