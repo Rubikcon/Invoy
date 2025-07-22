@@ -17,8 +17,8 @@ export default function EmployerDashboard({ walletInfo, onDisconnectWallet, onVi
 
   // Load all invoices that might be relevant to this employer
   React.useEffect(() => {
-    // For demo purposes, we'll show all invoices
-    // In a real app, this would filter by employer email or other criteria
+    // Load all invoices for employer to review
+    // In production, this could be filtered by employer's email or other criteria
     const allInvoices = invoiceStorage.getAllGlobal();
     const convertedInvoices: Invoice[] = allInvoices.map(stored => ({
       ...stored,
