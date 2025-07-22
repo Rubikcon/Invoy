@@ -126,17 +126,30 @@ export default function Navbar({
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
+          {!isWalletConnected && (
+            <div className="hidden md:flex items-center space-x-8">
+              {navItems.slice(0, -1).map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {isWalletConnected && (
+            <div className="hidden md:flex items-center space-x-8">
               <button
-                key={item.label}
-                onClick={item.action}
+                onClick={() => onViewChange('dashboard')}
                 className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200"
               >
-                {item.label}
+                Dashboard
               </button>
-            ))}
-          </div>
+            </div>
+          )}
 
           {/* Dark Mode Toggle & Connect Wallet Button */}
           <div className="hidden md:flex items-center space-x-4">
@@ -150,18 +163,13 @@ export default function Navbar({
                 <span>Connect Wallet</span>
               </button>
             ) : (
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-600 dark:text-gray-300 font-mono">
-                  {formatAddress(walletAddress)}
-                </span>
-                <button
-                  onClick={onDisconnectWallet}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <LogOut size={16} />
-                  <span>Disconnect</span>
-                </button>
-              </div>
+              <button
+                onClick={onDisconnectWallet}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
+              >
+                <LogOut size={16} />
+                <span>Disconnect</span>
+              </button>
             )}
           </div>
 
@@ -180,15 +188,27 @@ export default function Navbar({
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col space-y-3">
-              {navItems.map((item) => (
+              {!isWalletConnected ? (
+                navItems.slice(0, -1).map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={item.action}
+                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
+                  >
+                    {item.label}
+                  </button>
+                ))
+              ) : (
                 <button
-                  key={item.label}
-                  onClick={item.action}
+                  onClick={() => {
+                    onViewChange('dashboard');
+                    setIsMobileMenuOpen(false);
+                  }}
                   className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
                 >
-                  {item.label}
+                  Dashboard
                 </button>
-              ))}
+              )}
               
               <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
                 <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
@@ -205,9 +225,6 @@ export default function Navbar({
                   </button>
                 ) : (
                   <div className="flex flex-col items-end space-y-2">
-                    <span className="text-xs text-gray-600 dark:text-gray-300 font-mono">
-                      {formatAddress(walletAddress)}
-                    </span>
                     <button
                       onClick={() => {
                         onDisconnectWallet();
