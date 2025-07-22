@@ -178,6 +178,7 @@ function App() {
       ));
       setCurrentView('dashboard');
       setSelectedInvoice(null);
+    }
     // For demo purposes, we'll show the employer view
     // In a real app, this would be accessed via the email link
     setCurrentView('employer-invoice');
