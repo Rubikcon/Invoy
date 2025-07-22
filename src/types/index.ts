@@ -29,4 +29,6 @@ export interface WalletInfo {
   isConnected: boolean;
 }
 
-export type View = 'landing' | 'dashboard' | 'employer-invoice' | 'about-us' | 'freelancer-invoice-view';
+export type View = 'landing' | 'dashboard' | 'employer-dashboard' | 'employer-invoice' | 'about-us' | 'freelancer-invoice-view';
+
+export type UserType = 'freelancer' | 'employer';

@@ -6,13 +6,14 @@ import AnimatedHeroSlider from '../ui/AnimatedHeroSlider';
 interface HeroProps {
   onConnectWallet: () => void;
   onCreateInvoice: () => void;
+  onEmployerLogin: () => void;
   isWalletConnected: boolean;
   isConnecting?: boolean;
   walletAddress?: string;
   connectionError?: string;
 }
 
-export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnected, isConnecting, walletAddress, connectionError }: HeroProps) {
+export default function Hero({ onConnectWallet, onCreateInvoice, onEmployerLogin, isWalletConnected, isConnecting, walletAddress, connectionError }: HeroProps) {
   const { ref: heroRef, isVisible: heroVisible } = useScrollAnimation(0.1);
 
   const formatAddress = (address: string): string => {
@@ -56,7 +57,7 @@ export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnect
               <button
                 onClick={onConnectWallet}
                 disabled={isConnecting}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 group"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 group"
               >
                 {isConnecting ? (
                   <>
@@ -66,18 +67,19 @@ export default function Hero({ onConnectWallet, onCreateInvoice, isWalletConnect
                 ) : (
                   <>
                     <Wallet size={20} />
-                    <span>Connect Wallet</span>
+                    <span>Freelancer Login</span>
                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
               
               <button 
-                onClick={onCreateInvoice}
-                className="border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold hover:border-blue-500 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all duration-200 flex items-center justify-center space-x-2 group"
+                onClick={onEmployerLogin}
+                className="flex-1 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold hover:border-green-500 hover:text-green-500 dark:hover:border-green-400 dark:hover:text-green-400 transition-all duration-200 flex items-center justify-center space-x-2 group"
               >
-                <FileText size={20} />
-                <span>Create Invoice</span>
+                <User size={20} />
+                <span>Employer Login</span>
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
 

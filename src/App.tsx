@@ -12,6 +12,7 @@ import HowItWorks from './components/landing/HowItWorks';
 import Testimonials from './components/landing/Testimonials';
 import FAQ from './components/landing/FAQ';
 import Dashboard from './components/dashboard/Dashboard';
+import EmployerDashboard from './components/dashboard/EmployerDashboard';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import EmployerInvoice from './components/pages/EmployerInvoice';
 import AboutUs from './components/pages/AboutUs';
@@ -133,10 +134,11 @@ function App() {
   const [emailStatus, setEmailStatus] = React.useState<string>('');
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+  const [userType, setUserType] = React.useState<'freelancer' | 'employer'>('freelancer');
 
   // Load invoices from storage on component mount
   React.useEffect(() => {
-    if (walletInfo.isConnected && walletInfo.address) {
+    if (walletInfo.isConnected && walletInfo.address && userType === 'freelancer') {
       const storedInvoices = invoiceStorage.getByWalletAddress(walletInfo.address);
       const convertedInvoices: Invoice[] = storedInvoices.map(stored => ({
         ...stored,
@@ -144,7 +146,7 @@ function App() {
       }));
       setInvoices(convertedInvoices);
     }
-  }, [walletInfo.isConnected, walletInfo.address]);
+  }, [walletInfo.isConnected, walletInfo.address, userType]);
 
   // Check if we're on an invoice route
   const isInvoiceRoute = location.pathname.startsWith('/invoice/');
@@ -158,20 +160,31 @@ function App() {
   };
 
   const handleConnectWallet = async () => {
+    setUserType('freelancer');
+    await connectWallet();
+  };
+
+  const handleEmployerLogin = async () => {
+    setUserType('employer');
     await connectWallet();
   };
 
   const handleDisconnectWallet = () => {
     disconnectWallet();
+    setUserType('freelancer');
     setCurrentView('landing');
   };
 
   // Auto-redirect to dashboard when wallet connects successfully
   React.useEffect(() => {
     if (walletInfo.isConnected) {
-      setCurrentView('dashboard');
+      if (userType === 'freelancer') {
+        setCurrentView('dashboard');
+      } else {
+        setCurrentView('employer-dashboard');
+      }
     }
-  }, [walletInfo.isConnected]);
+  }, [walletInfo.isConnected, userType]);
 
   const handleSubmitInvoice = (data: CreateInvoiceData) => {
     // Generate a more unique invoice ID
@@ -288,6 +301,25 @@ function App() {
               setSelectedInvoice(invoice);
               setCurrentView('freelancer-invoice-view');
             }}
+            onDeleteInvoice={(invoiceId) => {
+              // Remove from state
+              setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
+              // Remove from storage
+              if (walletInfo.address) {
+                invoiceStorage.delete(invoiceId, walletInfo.address);
+              }
+            }}
+          />
+        );
+      case 'employer-dashboard':
+        return (
+          <EmployerDashboard
+            walletInfo={walletInfo}
+            onDisconnectWallet={handleDisconnectWallet}
+            onViewInvoice={(invoice) => {
+              setSelectedInvoice(invoice);
+              setCurrentView('employer-invoice');
+            }}
           />
         );
       case 'freelancer-invoice-view':
@@ -318,6 +350,7 @@ function App() {
             <Hero
               onConnectWallet={handleConnectWallet}
               onCreateInvoice={handleCreateInvoice}
+              onEmployerLogin={handleEmployerLogin}
               isWalletConnected={walletInfo.isConnected}
               isConnecting={isConnecting}
               walletAddress={walletInfo.address}
