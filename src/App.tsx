@@ -44,44 +44,23 @@ function EmployerInvoiceRoute() {
     }
   }, [invoiceId]);
   
-  const handleApprove = async () => {
-    if (!invoice || !invoiceId) return;
+  const handleApprove = async (invoice: Invoice) => {
+    if (!invoice) return;
     
     // Update invoice status in storage
-    invoiceStorage.updateStatus(invoiceId, 'Approved');
+    invoiceStorage.updateStatus(invoice.id, 'Approved');
     
-    // Send notification email to freelancer
-    await sendStatusUpdateEmail({
-      freelancerEmail: invoice.freelancerEmail,
-      freelancerName: invoice.freelancerName,
-      invoiceId: invoice.id,
-      status: 'Approved',
-      employerEmail: invoice.employerEmail,
-      amount: invoice.amount
-    });
-    
-    // Show success page instead of redirecting to dashboard
+    // Update local state to show success
     setInvoice(prev => prev ? { ...prev, status: 'Approved' } : null);
   };
   
-  const handleReject = async (reason: string) => {
-    if (!invoice || !invoiceId) return;
+  const handleReject = async (invoice: Invoice, reason: string) => {
+    if (!invoice) return;
     
     // Update invoice status in storage
-    invoiceStorage.updateStatus(invoiceId, 'Rejected', reason);
+    invoiceStorage.updateStatus(invoice.id, 'Rejected', reason);
     
-    // Send notification email to freelancer
-    await sendStatusUpdateEmail({
-      freelancerEmail: invoice.freelancerEmail,
-      freelancerName: invoice.freelancerName,
-      invoiceId: invoice.id,
-      status: 'Rejected',
-      employerEmail: invoice.employerEmail,
-      amount: invoice.amount,
-      rejectionReason: reason
-    });
-    
-    // Show rejection confirmation instead of redirecting
+    // Update local state to show rejection
     setInvoice(prev => prev ? { ...prev, status: 'Rejected' } : null);
   };
   

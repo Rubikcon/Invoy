@@ -1,34 +1,93 @@
 import React from 'react';
-import { CheckCircle, XCircle, ArrowLeft, User, Wallet, Globe, Calendar, FileText, Shield, AlertTriangle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowLeft, User, Wallet, Globe, Calendar, FileText, Shield, AlertTriangle, Clock, LogOut } from 'lucide-react';
 import { Invoice } from '../../types';
+import { useWallet } from '../../hooks/useWallet';
+import { sendStatusUpdateEmail } from '../../services/emailService';
 
 interface EmployerInvoiceProps {
   invoice: Invoice;
-  onApprove: () => void;
-  onReject: (reason: string) => void;
+  onApprove: (invoice: Invoice) => void;
+  onReject: (invoice: Invoice, reason: string) => void;
   onBack: () => void;
 }
 
 export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }: EmployerInvoiceProps) {
+  const { walletInfo, isConnecting, connectionError, connectWallet, disconnectWallet, formatAddress } = useWallet();
   const [isRejecting, setIsRejecting] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState('');
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [showWalletPrompt, setShowWalletPrompt] = React.useState(false);
+  const [pendingAction, setPendingAction] = React.useState<'approve' | 'reject' | null>(null);
+  const [customReason, setCustomReason] = React.useState('');
 
-  const handleApprove = async () => {
-    setIsProcessing(true);
-    // Simulate processing time
-    setTimeout(() => {
-      onApprove();
-      setIsProcessing(false);
-    }, 2000);
+  const handleApprove = () => {
+    if (!walletInfo.isConnected) {
+      setPendingAction('approve');
+      setShowWalletPrompt(true);
+      return;
+    }
+    processApproval();
   };
 
-  const handleReject = () => {
-    if (rejectReason.trim()) {
-      onReject(rejectReason);
+  const processApproval = async () => {
+    setIsProcessing(true);
+    
+    try {
+      // Send notification email to freelancer
+      await sendStatusUpdateEmail({
+        freelancerEmail: invoice.freelancerEmail,
+        freelancerName: invoice.freelancerName,
+        invoiceId: invoice.id,
+        status: 'Approved',
+        employerEmail: invoice.employerEmail,
+        amount: invoice.amount
+      });
+      
+      // Call parent handler
+      onApprove(invoice);
+    } catch (error) {
+      console.error('Error processing approval:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    const finalReason = rejectReason === 'Other (please specify)' ? customReason : rejectReason;
+    
+    if (finalReason.trim()) {
+      try {
+        // Send notification email to freelancer
+        await sendStatusUpdateEmail({
+          freelancerEmail: invoice.freelancerEmail,
+          freelancerName: invoice.freelancerName,
+          invoiceId: invoice.id,
+          status: 'Rejected',
+          employerEmail: invoice.employerEmail,
+          amount: invoice.amount,
+          rejectionReason: finalReason
+        });
+        
+        // Call parent handler
+        onReject(invoice, finalReason);
+      } catch (error) {
+        console.error('Error processing rejection:', error);
+      }
+      
       setIsRejecting(false);
       setRejectReason('');
+      setCustomReason('');
     }
+  };
+
+  const handleWalletConnect = async () => {
+    await connectWallet();
+    setShowWalletPrompt(false);
+    
+    if (pendingAction === 'approve') {
+      processApproval();
+    }
+    setPendingAction(null);
   };
 
   const commonReasons = [
@@ -267,6 +326,36 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
             {/* Action Buttons */}
             {invoice.status === 'Pending' && (
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                {/* Wallet Connection Status */}
+                {!walletInfo.isConnected && (
+                  <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-6">
+                    <div className="flex items-start space-x-3">
+                      <Wallet size={20} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h5 className="font-medium text-orange-800 dark:text-orange-200">Wallet Connection Required</h5>
+                        <p className="text-orange-700 dark:text-orange-300 text-sm mt-1">
+                          You need to connect your wallet to approve or reject this invoice.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Connected Wallet Info */}
+                {walletInfo.isConnected && (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle size={20} className="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h5 className="font-medium text-green-800 dark:text-green-200">Wallet Connected</h5>
+                        <p className="text-green-700 dark:text-green-300 text-sm mt-1">
+                          {formatAddress(walletInfo.address)} on {walletInfo.network}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
                   <div className="flex items-start space-x-3">
                     <AlertTriangle size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
@@ -282,13 +371,18 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                 <div className="flex flex-col md:flex-row gap-4">
                   <button
                     onClick={handleApprove}
-                    disabled={isProcessing}
+                    disabled={isProcessing || isConnecting}
                     className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessing ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         <span>Processing Payment...</span>
+                      </>
+                    ) : !walletInfo.isConnected ? (
+                      <>
+                        <Wallet size={24} />
+                        <span>Connect Wallet to Approve</span>
                       </>
                     ) : (
                       <>
@@ -299,7 +393,7 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                   </button>
                   <button
                     onClick={() => setIsRejecting(true)}
-                    disabled={isProcessing}
+                    disabled={isProcessing || isConnecting}
                     className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <XCircle size={24} />
@@ -389,8 +483,8 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                     <textarea
                       rows={3}
                       placeholder="Please specify the reason for rejection..."
-                      value={rejectReason === 'Other (please specify)' ? '' : rejectReason}
-                      onChange={(e) => setRejectReason(e.target.value)}
+                      value={customReason}
+                      onChange={(e) => setCustomReason(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
                     />
                   </div>
@@ -405,10 +499,64 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                   </button>
                   <button
                     onClick={handleReject}
-                    disabled={!rejectReason.trim()}
+                    disabled={!rejectReason.trim() || (rejectReason === 'Other (please specify)' && !customReason.trim())}
                     className="px-6 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Reject Invoice
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Wallet Connection Modal */}
+        {showWalletPrompt && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-screen items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowWalletPrompt(false)}></div>
+              
+              <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 transition-colors duration-300">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                    <Wallet size={20} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Connect Your Wallet</h3>
+                </div>
+                
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  You need to connect your wallet to approve this invoice payment. This ensures secure transaction processing.
+                </p>
+                
+                {connectionError && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+                    <p className="text-red-800 dark:text-red-200 text-sm">{connectionError}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowWalletPrompt(false)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleWalletConnect}
+                    disabled={isConnecting}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {isConnecting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Connecting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wallet size={16} />
+                        <span>Connect Wallet</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
