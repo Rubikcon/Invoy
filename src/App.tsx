@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { View, WalletInfo, Invoice, CreateInvoiceData } from './types';
+import { invoiceStorage, StoredInvoice } from './services/invoiceStorage';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useWallet } from './hooks/useWallet';
 import Navbar from './components/layout/Navbar';
@@ -17,6 +18,7 @@ import AboutUs from './components/pages/AboutUs';
 import FreelancerInvoiceView from './components/pages/FreelancerInvoiceView';
 import EmailSetupModal from './components/modals/EmailSetupModal';
 import { sendInvoiceEmail, copyInvoiceDetails } from './services/emailService';
+import { sendStatusUpdateEmail } from './services/emailService';
 
 // Component to handle employer invoice routes
 function EmployerInvoiceRoute() {
