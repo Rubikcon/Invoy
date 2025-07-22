@@ -13,6 +13,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import EmployerInvoice from './components/pages/EmployerInvoice';
 import AboutUs from './components/pages/AboutUs';
+import FreelancerInvoiceView from './components/pages/FreelancerInvoiceView';
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -103,11 +104,8 @@ function App() {
     
     setInvoices(prev => [newInvoice, ...prev]);
     
-    // Simulate sending employer to review page
-    setTimeout(() => {
-      setSelectedInvoice(newInvoice);
-      setCurrentView('employer-invoice');
-    }, 1000);
+    // Show success message to freelancer
+    alert(`Invoice ${newInvoice.id} created successfully! An email with the review link has been sent to ${data.employerEmail}`);
   };
 
   const handleApproveInvoice = () => {
@@ -143,8 +141,19 @@ function App() {
             invoices={invoices}
             onCreateInvoice={handleCreateInvoice}
             onDisconnectWallet={handleDisconnectWallet}
+            onViewInvoice={(invoice) => {
+              setSelectedInvoice(invoice);
+              setCurrentView('freelancer-invoice-view');
+            }}
           />
         );
+      case 'freelancer-invoice-view':
+        return selectedInvoice ? (
+          <FreelancerInvoiceView
+            invoice={selectedInvoice}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        ) : null;
       case 'employer-invoice':
         return selectedInvoice ? (
           <EmployerInvoice

@@ -4,9 +4,10 @@ import { Invoice } from '../../types';
 
 interface InvoiceTableProps {
   invoices: Invoice[];
+  onViewInvoice?: (invoice: Invoice) => void;
 }
 
-export default function InvoiceTable({ invoices }: InvoiceTableProps) {
+export default function InvoiceTable({ invoices, onViewInvoice }: InvoiceTableProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -59,7 +60,10 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-medium text-gray-900 dark:text-white">{invoice.amount} ETH</span>
-                <button className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1">
+                <button 
+                  onClick={() => onViewInvoice?.(invoice)}
+                  className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
+                >
                   <ExternalLink size={12} />
                   <span className="text-xs">View</span>
                 </button>
@@ -115,7 +119,10 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1">
+                  <button 
+                    onClick={() => onViewInvoice?.(invoice)}
+                    className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
+                  >
                     <ExternalLink size={14} />
                     <span className="text-sm">View</span>
                   </button>

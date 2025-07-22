@@ -9,9 +9,10 @@ interface DashboardProps {
   invoices: Invoice[];
   onCreateInvoice: () => void;
   onDisconnectWallet: () => void;
+  onViewInvoice?: (invoice: Invoice) => void;
 }
 
-export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDisconnectWallet }: DashboardProps) {
+export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDisconnectWallet, onViewInvoice }: DashboardProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filteredInvoices, setFilteredInvoices] = React.useState<Invoice[]>(invoices);
 
@@ -186,7 +187,7 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
         )}
 
         {/* Invoice Table */}
-        <InvoiceTable invoices={filteredInvoices} />
+        <InvoiceTable invoices={filteredInvoices} onViewInvoice={onViewInvoice} />
       </div>
     </div>
   );
