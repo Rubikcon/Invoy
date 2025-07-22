@@ -21,7 +21,7 @@ export default function EmployerInvoice({ invoice: initialInvoice, onBack }: Emp
   const [customReason, setCustomReason] = React.useState('');
   const [showConfirmation, setShowConfirmation] = React.useState(false);
   const [confirmationMessage, setConfirmationMessage] = React.useState('');
-  const [confirmationType, setConfirmationType] = React.useState<'success' | 'error'>('success');</parameter>
+  const [confirmationType, setConfirmationType] = React.useState<'success' | 'error'>('success');
 
   const handleApprove = () => {
     if (!walletInfo.isConnected) {
