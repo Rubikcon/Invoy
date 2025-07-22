@@ -312,8 +312,6 @@ function App() {
         return selectedInvoice ? (
           <EmployerInvoice
             invoice={selectedInvoice}
-            onApprove={handleApproveInvoice}
-            onReject={handleRejectInvoice}
             onBack={() => setCurrentView('landing')}
           />
         ) : null;

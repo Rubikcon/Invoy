@@ -3,22 +3,25 @@ import { CheckCircle, XCircle, ArrowLeft, User, Wallet, Globe, Calendar, FileTex
 import { Invoice } from '../../types';
 import { useWallet } from '../../hooks/useWallet';
 import { sendStatusUpdateEmail } from '../../services/emailService';
+import { invoiceStorage } from '../../services/invoiceStorage';
 
 interface EmployerInvoiceProps {
   invoice: Invoice;
-  onApprove: (invoice: Invoice) => void;
-  onReject: (invoice: Invoice, reason: string) => void;
   onBack: () => void;
 }
 
-export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }: EmployerInvoiceProps) {
+export default function EmployerInvoice({ invoice: initialInvoice, onBack }: EmployerInvoiceProps) {
   const { walletInfo, isConnecting, connectionError, connectWallet, disconnectWallet, formatAddress } = useWallet();
+  const [invoice, setInvoice] = React.useState(initialInvoice);
   const [isRejecting, setIsRejecting] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState('');
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [showWalletPrompt, setShowWalletPrompt] = React.useState(false);
   const [pendingAction, setPendingAction] = React.useState<'approve' | 'reject' | null>(null);
   const [customReason, setCustomReason] = React.useState('');
+  const [showConfirmation, setShowConfirmation] = React.useState(false);
+  const [confirmationMessage, setConfirmationMessage] = React.useState('');
+  const [confirmationType, setConfirmationType] = React.useState<'success' | 'error'>('success');</parameter>
 
   const handleApprove = () => {
     if (!walletInfo.isConnected) {
@@ -33,6 +36,12 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
     setIsProcessing(true);
     
     try {
+      // Update invoice status in storage
+      invoiceStorage.updateStatus(invoice.id, 'Approved');
+      
+      // Update local state
+      setInvoice(prev => ({ ...prev, status: 'Approved' }));
+      
       // Send notification email to freelancer
       await sendStatusUpdateEmail({
         freelancerEmail: invoice.freelancerEmail,
@@ -43,10 +52,16 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
         amount: invoice.amount
       });
       
-      // Call parent handler
-      onApprove(invoice);
+      // Show confirmation message
+      setConfirmationMessage(`✅ Invoice ${invoice.id} has been approved! Payment is being processed and ${invoice.freelancerName} has been notified.`);
+      setConfirmationType('success');
+      setShowConfirmation(true);
+      
     } catch (error) {
       console.error('Error processing approval:', error);
+      setConfirmationMessage('❌ Failed to process approval. Please try again.');
+      setConfirmationType('error');
+      setShowConfirmation(true);
     } finally {
       setIsProcessing(false);
     }
@@ -57,6 +72,12 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
     
     if (finalReason.trim()) {
       try {
+        // Update invoice status in storage
+        invoiceStorage.updateStatus(invoice.id, 'Rejected', finalReason);
+        
+        // Update local state
+        setInvoice(prev => ({ ...prev, status: 'Rejected' }));
+        
         // Send notification email to freelancer
         await sendStatusUpdateEmail({
           freelancerEmail: invoice.freelancerEmail,
@@ -68,10 +89,16 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
           rejectionReason: finalReason
         });
         
-        // Call parent handler
-        onReject(invoice, finalReason);
+        // Show confirmation message
+        setConfirmationMessage(`✅ Invoice ${invoice.id} has been rejected and ${invoice.freelancerName} has been notified with your feedback.`);
+        setConfirmationType('success');
+        setShowConfirmation(true);
+        
       } catch (error) {
         console.error('Error processing rejection:', error);
+        setConfirmationMessage('❌ Failed to process rejection. Please try again.');
+        setConfirmationType('error');
+        setShowConfirmation(true);
       }
       
       setIsRejecting(false);
@@ -558,6 +585,52 @@ export default function EmployerInvoice({ invoice, onApprove, onReject, onBack }
                       </>
                     )}
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Modal */}
+        {showConfirmation && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-screen items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowConfirmation(false)}></div>
+              
+              <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 transition-colors duration-300">
+                <div className="text-center">
+                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                    confirmationType === 'success' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'
+                  }`}>
+                    {confirmationType === 'success' ? (
+                      <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
+                    ) : (
+                      <XCircle size={32} className="text-red-600 dark:text-red-400" />
+                    )}
+                  </div>
+                  
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    {confirmationType === 'success' ? 'Action Completed' : 'Action Failed'}
+                  </h3>
+                  
+                  <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                    {confirmationMessage}
+                  </p>
+                  
+                  <div className="flex justify-center space-x-3">
+                    <button
+                      onClick={() => setShowConfirmation(false)}
+                      className="px-6 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200"
+                    >
+                      Continue
+                    </button>
+                    <button
+                      onClick={() => window.close()}
+                      className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                    >
+                      Close Window
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
