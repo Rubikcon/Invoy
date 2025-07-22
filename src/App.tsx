@@ -137,7 +137,7 @@ function App() {
   // Load invoices from storage on component mount
   React.useEffect(() => {
     if (walletInfo.isConnected && walletInfo.address) {
-      const storedInvoices = invoiceStorage.getByFreelancer(walletInfo.address);
+      const storedInvoices = invoiceStorage.getByWalletAddress(walletInfo.address);
       const convertedInvoices: Invoice[] = storedInvoices.map(stored => ({
         ...stored,
         createdAt: new Date(stored.createdAt)

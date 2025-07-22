@@ -73,6 +73,12 @@ export const invoiceStorage = {
   // Get invoices for a specific freelancer
   getByFreelancer(freelancerEmail: string): StoredInvoice[] {
     const invoices = this.getAll();
-    return invoices.filter(inv => inv.freelancerEmail === freelancerEmail);
+    return invoices.filter(inv => inv.walletAddress.toLowerCase() === freelancerEmail.toLowerCase());
+  },
+
+  // Get invoices for a specific wallet address
+  getByWalletAddress(walletAddress: string): StoredInvoice[] {
+    const invoices = this.getAll();
+    return invoices.filter(inv => inv.walletAddress.toLowerCase() === walletAddress.toLowerCase());
   }
 };
