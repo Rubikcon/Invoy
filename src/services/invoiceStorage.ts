@@ -1,4 +1,4 @@
-// Invoice storage service to persist invoices across sessions
+// Global invoice storage service that works across different browsers/users
 export interface StoredInvoice {
   id: string;
   employerEmail: string;
@@ -14,71 +14,120 @@ export interface StoredInvoice {
   rejectionReason?: string;
 }
 
-const STORAGE_KEY = 'invoy_invoices';
+// Global storage key for all invoices (accessible to employers)
+const GLOBAL_STORAGE_KEY = 'invoy_all_invoices';
+// User-specific storage key for freelancer's own invoices
+const USER_STORAGE_KEY = 'invoy_user_invoices';
 
 export const invoiceStorage = {
-  // Get all invoices
-  getAll(): StoredInvoice[] {
+  // Get all invoices globally (for employers accessing via links)
+  getAllGlobal(): StoredInvoice[] {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(GLOBAL_STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error('Error loading invoices:', error);
+      console.error('Error loading global invoices:', error);
       return [];
     }
   },
 
-  // Get invoice by ID
-  getById(id: string): StoredInvoice | null {
-    const invoices = this.getAll();
-    return invoices.find(inv => inv.id === id) || null;
+  // Get invoices for specific freelancer (private to them)
+  getByWalletAddress(walletAddress: string): StoredInvoice[] {
+    try {
+      const userKey = `${USER_STORAGE_KEY}_${walletAddress.toLowerCase()}`;
+      const stored = localStorage.getItem(userKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error loading user invoices:', error);
+      return [];
+    }
   },
 
-  // Save invoice
+  // Get invoice by ID (accessible globally for employer links)
+  getById(id: string): StoredInvoice | null {
+    const globalInvoices = this.getAllGlobal();
+    return globalInvoices.find(inv => inv.id === id) || null;
+  },
+
+  // Save invoice (both globally and to user's private storage)
   save(invoice: StoredInvoice): void {
     try {
-      const invoices = this.getAll();
-      const existingIndex = invoices.findIndex(inv => inv.id === invoice.id);
+      // Save to global storage (for employer access)
+      const globalInvoices = this.getAllGlobal();
+      const existingGlobalIndex = globalInvoices.findIndex(inv => inv.id === invoice.id);
       
-      if (existingIndex >= 0) {
-        invoices[existingIndex] = invoice;
+      if (existingGlobalIndex >= 0) {
+        globalInvoices[existingGlobalIndex] = invoice;
       } else {
-        invoices.unshift(invoice);
+        globalInvoices.unshift(invoice);
       }
+      localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(globalInvoices));
+
+      // Save to user's private storage
+      const userKey = `${USER_STORAGE_KEY}_${invoice.walletAddress.toLowerCase()}`;
+      const userInvoices = this.getByWalletAddress(invoice.walletAddress);
+      const existingUserIndex = userInvoices.findIndex(inv => inv.id === invoice.id);
       
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
+      if (existingUserIndex >= 0) {
+        userInvoices[existingUserIndex] = invoice;
+      } else {
+        userInvoices.unshift(invoice);
+      }
+      localStorage.setItem(userKey, JSON.stringify(userInvoices));
+      
     } catch (error) {
       console.error('Error saving invoice:', error);
     }
   },
 
-  // Update invoice status
+  // Update invoice status (updates both global and user storage)
   updateStatus(id: string, status: StoredInvoice['status'], rejectionReason?: string): void {
     try {
-      const invoices = this.getAll();
-      const invoice = invoices.find(inv => inv.id === id);
+      // Update in global storage
+      const globalInvoices = this.getAllGlobal();
+      const globalInvoice = globalInvoices.find(inv => inv.id === id);
       
-      if (invoice) {
-        invoice.status = status;
+      if (globalInvoice) {
+        globalInvoice.status = status;
         if (rejectionReason) {
-          invoice.rejectionReason = rejectionReason;
+          globalInvoice.rejectionReason = rejectionReason;
         }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
+        localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(globalInvoices));
+
+        // Update in user's private storage
+        const userKey = `${USER_STORAGE_KEY}_${globalInvoice.walletAddress.toLowerCase()}`;
+        const userInvoices = this.getByWalletAddress(globalInvoice.walletAddress);
+        const userInvoice = userInvoices.find(inv => inv.id === id);
+        
+        if (userInvoice) {
+          userInvoice.status = status;
+          if (rejectionReason) {
+            userInvoice.rejectionReason = rejectionReason;
+          }
+          localStorage.setItem(userKey, JSON.stringify(userInvoices));
+        }
       }
     } catch (error) {
       console.error('Error updating invoice status:', error);
     }
   },
 
-  // Get invoices for a specific freelancer
-  getByFreelancer(freelancerEmail: string): StoredInvoice[] {
-    const invoices = this.getAll();
-    return invoices.filter(inv => inv.walletAddress.toLowerCase() === freelancerEmail.toLowerCase());
-  },
+  // Delete invoice (removes from both global and user storage)
+  delete(id: string, walletAddress: string): void {
+    try {
+      // Remove from global storage
+      const globalInvoices = this.getAllGlobal();
+      const filteredGlobal = globalInvoices.filter(inv => inv.id !== id);
+      localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(filteredGlobal));
 
-  // Get invoices for a specific wallet address
-  getByWalletAddress(walletAddress: string): StoredInvoice[] {
-    const invoices = this.getAll();
-    return invoices.filter(inv => inv.walletAddress.toLowerCase() === walletAddress.toLowerCase());
+      // Remove from user's private storage
+      const userKey = `${USER_STORAGE_KEY}_${walletAddress.toLowerCase()}`;
+      const userInvoices = this.getByWalletAddress(walletAddress);
+      const filteredUser = userInvoices.filter(inv => inv.id !== id);
+      localStorage.setItem(userKey, JSON.stringify(filteredUser));
+      
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+    }
   }
 };

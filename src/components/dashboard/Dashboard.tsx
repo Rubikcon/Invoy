@@ -3,6 +3,7 @@ import { Plus, User, Globe, Search, X } from 'lucide-react';
 import { LogOut } from 'lucide-react';
 import { WalletInfo, Invoice } from '../../types';
 import InvoiceTable from './InvoiceTable';
+import { invoiceStorage } from '../../services/invoiceStorage';
 
 interface DashboardProps {
   walletInfo: WalletInfo;
@@ -10,11 +11,13 @@ interface DashboardProps {
   onCreateInvoice: () => void;
   onDisconnectWallet: () => void;
   onViewInvoice?: (invoice: Invoice) => void;
+  onDeleteInvoice?: (invoiceId: string) => void;
 }
 
-export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDisconnectWallet, onViewInvoice }: DashboardProps) {
+export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDisconnectWallet, onViewInvoice, onDeleteInvoice }: DashboardProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filteredInvoices, setFilteredInvoices] = React.useState<Invoice[]>(invoices);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState<string | null>(null);
 
   // Filter invoices based on search term
   React.useEffect(() => {
@@ -42,6 +45,17 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
   const formatAddress = (address: string): string => {
     if (!address) return '';
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
+  };
+
+  const handleDeleteInvoice = (invoiceId: string) => {
+    setShowDeleteConfirm(invoiceId);
+  };
+
+  const confirmDelete = () => {
+    if (showDeleteConfirm && onDeleteInvoice) {
+      onDeleteInvoice(showDeleteConfirm);
+      setShowDeleteConfirm(null);
+    }
   };
 
   return (
@@ -187,7 +201,42 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
         )}
 
         {/* Invoice Table */}
-        <InvoiceTable invoices={filteredInvoices} onViewInvoice={onViewInvoice} />
+        <InvoiceTable 
+          invoices={filteredInvoices} 
+          onViewInvoice={onViewInvoice} 
+          onDeleteInvoice={handleDeleteInvoice}
+        />
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-screen items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowDeleteConfirm(null)}></div>
+              
+              <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 transition-colors duration-300">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Delete Invoice</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Are you sure you want to delete invoice <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{showDeleteConfirm}</code>? This action cannot be undone.
+                </p>
+                
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors duration-200"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

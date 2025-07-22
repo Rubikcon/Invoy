@@ -1,13 +1,15 @@
 import React from 'react';
-import { Mail, ExternalLink } from 'lucide-react';
+import { Mail, ExternalLink, Trash2 } from 'lucide-react';
 import { Invoice } from '../../types';
+import { invoiceStorage } from '../../services/invoiceStorage';
 
 interface InvoiceTableProps {
   invoices: Invoice[];
   onViewInvoice?: (invoice: Invoice) => void;
+  onDeleteInvoice?: (invoiceId: string) => void;
 }
 
-export default function InvoiceTable({ invoices, onViewInvoice }: InvoiceTableProps) {
+export default function InvoiceTable({ invoices, onViewInvoice, onDeleteInvoice }: InvoiceTableProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -60,13 +62,22 @@ export default function InvoiceTable({ invoices, onViewInvoice }: InvoiceTablePr
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-medium text-gray-900 dark:text-white">{invoice.amount} ETH</span>
-                <button 
-                  onClick={() => onViewInvoice?.(invoice)}
-                  className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
-                >
-                  <ExternalLink size={12} />
-                  <span className="text-xs">View</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => onViewInvoice?.(invoice)}
+                    className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
+                  >
+                    <ExternalLink size={12} />
+                    <span className="text-xs">View</span>
+                  </button>
+                  <button 
+                    onClick={() => onDeleteInvoice?.(invoice.id)}
+                    className="text-red-600 hover:text-red-800 transition-colors duration-200 flex items-center space-x-1"
+                  >
+                    <Trash2 size={12} />
+                    <span className="text-xs">Delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -119,13 +130,22 @@ export default function InvoiceTable({ invoices, onViewInvoice }: InvoiceTablePr
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button 
-                    onClick={() => onViewInvoice?.(invoice)}
-                    className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
-                  >
-                    <ExternalLink size={14} />
-                    <span className="text-sm">View</span>
-                  </button>
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      onClick={() => onViewInvoice?.(invoice)}
+                      className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
+                    >
+                      <ExternalLink size={14} />
+                      <span className="text-sm">View</span>
+                    </button>
+                    <button 
+                      onClick={() => onDeleteInvoice?.(invoice.id)}
+                      className="text-red-600 hover:text-red-800 transition-colors duration-200 flex items-center space-x-1"
+                    >
+                      <Trash2 size={14} />
+                      <span className="text-sm">Delete</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
