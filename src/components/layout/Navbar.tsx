@@ -141,11 +141,6 @@ export default function Navbar({
           )}
 
           {/* Dashboard title when wallet is connected */}
-          {isWalletConnected && (
-            <div className="hidden md:block">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
-            </div>
-          )}
 
           {/* Dark Mode Toggle & Connect Wallet Button */}
           <div className="hidden md:flex items-center space-x-4">
@@ -162,10 +157,9 @@ export default function Navbar({
               <button
                 onClick={onDisconnectWallet}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
-                className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
               >
                 <LogOut size={16} />
-                <span>Disconnect</span>
+                <span>Disconnect Wallet</span>
               </button>
             )}
           </div>
@@ -221,7 +215,7 @@ export default function Navbar({
                     className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors duration-200 flex items-center space-x-1"
                   >
                     <LogOut size={14} />
-                    <span>Disconnect</span>
+                    <span>Disconnect Wallet</span>
                   </button>
                 )}
               </div>
