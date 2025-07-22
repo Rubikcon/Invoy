@@ -1,13 +1,23 @@
 import React from 'react';
-import { X, Mail, AlertCircle, ExternalLink } from 'lucide-react';
+import { X, Mail, AlertCircle, ExternalLink, Copy, Send } from 'lucide-react';
 
 interface EmailSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onContinue: () => void;
+  onSendEmail: () => void;
+  onCopyEmail: () => void;
+  employerEmail: string;
+  invoiceId: string;
 }
 
-export default function EmailSetupModal({ isOpen, onClose, onContinue }: EmailSetupModalProps) {
+export default function EmailSetupModal({ 
+  isOpen, 
+  onClose, 
+  onSendEmail, 
+  onCopyEmail, 
+  employerEmail, 
+  invoiceId 
+}: EmailSetupModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -19,7 +29,7 @@ export default function EmailSetupModal({ isOpen, onClose, onContinue }: EmailSe
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center space-x-2">
               <Mail size={24} className="text-blue-500" />
-              <span>Email Setup Required</span>
+              <span>Send Invoice to Employer</span>
             </h2>
             <button
               onClick={onClose}
@@ -35,49 +45,68 @@ export default function EmailSetupModal({ isOpen, onClose, onContinue }: EmailSe
                 <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-blue-800 dark:text-blue-200 text-sm">
-                    <strong>Email Service Setup Needed</strong>
+                    <strong>Invoice {invoiceId} Ready to Send</strong>
                   </p>
                   <p className="text-blue-700 dark:text-blue-300 text-sm mt-1">
-                    To send real emails to employers, you need to configure an email service. For now, we'll open your email client to send manually.
+                    Choose how you'd like to notify <strong>{employerEmail}</strong> about this invoice.
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-semibold text-gray-900 dark:text-white">What happens next:</h3>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li className="flex items-start space-x-2">
-                  <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
-                  <span>Your email client will open with a pre-filled message</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-                  <span>The email includes the invoice link and all details</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="w-5 h-5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
-                  <span>Send the email to notify the employer</span>
-                </li>
-              </ul>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Choose sending method:</h3>
+              
+              {/* Option 1: Email Client */}
+              <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-blue-500 dark:hover:border-blue-400 transition-colors duration-200">
+                <div className="flex items-start space-x-3">
+                  <Send size={20} className="text-blue-500 flex-shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 dark:text-white">Open Email Client</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      Opens your default email app with a pre-filled message ready to send.
+                    </p>
+                    <button
+                      onClick={onSendEmail}
+                      className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
+                    >
+                      Open Email Client
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 2: Copy to Clipboard */}
+              <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-green-500 dark:hover:border-green-400 transition-colors duration-200">
+                <div className="flex items-start space-x-3">
+                  <Copy size={20} className="text-green-500 flex-shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 dark:text-white">Copy Email Content</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      Copy the email content to paste into any email service (Gmail, Outlook, etc.).
+                    </p>
+                    <button
+                      onClick={onCopyEmail}
+                      className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors duration-200"
+                    >
+                      Copy to Clipboard
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
               <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center space-x-2">
                 <ExternalLink size={16} />
-                <span>Want Automatic Emails?</span>
+                <span>What the employer will receive:</span>
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                To enable automatic email sending, you can set up EmailJS or another email service. 
-                <a 
-                  href="https://www.emailjs.com/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline ml-1"
-                >
-                  Learn more about EmailJS →
-                </a>
-              </p>
+              <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                <li>• Professional invoice email with all details</li>
+                <li>• Direct link to review and approve payment</li>
+                <li>• Secure payment information and network details</li>
+                <li>• Your contact information for any questions</li>
+              </ul>
             </div>
           </div>
 
@@ -87,12 +116,6 @@ export default function EmailSetupModal({ isOpen, onClose, onContinue }: EmailSe
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
             >
               Cancel
-            </button>
-            <button
-              onClick={onContinue}
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200"
-            >
-              Open Email Client
             </button>
           </div>
         </div>

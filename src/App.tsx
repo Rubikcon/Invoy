@@ -15,7 +15,7 @@ import EmployerInvoice from './components/pages/EmployerInvoice';
 import AboutUs from './components/pages/AboutUs';
 import FreelancerInvoiceView from './components/pages/FreelancerInvoiceView';
 import EmailSetupModal from './components/modals/EmailSetupModal';
-import { openEmailClient } from './services/emailService';
+import { sendInvoiceEmail, copyInvoiceDetails } from './services/emailService';
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -24,6 +24,7 @@ function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [isEmailSetupModalOpen, setIsEmailSetupModalOpen] = React.useState(false);
   const [pendingEmailData, setPendingEmailData] = React.useState<any>(null);
+  const [emailStatus, setEmailStatus] = React.useState<string>('');
   const [invoices, setInvoices] = React.useState<Invoice[]>([
     {
       id: 'INV-001',
@@ -124,14 +125,35 @@ function App() {
     setIsEmailSetupModalOpen(true);
   };
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (pendingEmailData) {
-      openEmailClient(pendingEmailData);
+      const result = await sendInvoiceEmail(pendingEmailData);
       setIsEmailSetupModalOpen(false);
       setPendingEmailData(null);
       
-      // Show success message
-      alert(`Invoice ${pendingEmailData.invoiceId} created successfully! Your email client will open to send the invoice link to ${pendingEmailData.employerEmail}`);
+      if (result.success) {
+        setEmailStatus(`✅ ${result.message}`);
+        setTimeout(() => setEmailStatus(''), 5000);
+      } else {
+        setEmailStatus(`❌ ${result.message}`);
+        setTimeout(() => setEmailStatus(''), 5000);
+      }
+    }
+  };
+
+  const handleCopyEmail = async () => {
+    if (pendingEmailData) {
+      const result = await copyInvoiceDetails(pendingEmailData);
+      setIsEmailSetupModalOpen(false);
+      setPendingEmailData(null);
+      
+      if (result.success) {
+        setEmailStatus(`✅ ${result.message}`);
+        setTimeout(() => setEmailStatus(''), 5000);
+      } else {
+        setEmailStatus(`❌ ${result.message}`);
+        setTimeout(() => setEmailStatus(''), 5000);
+      }
     }
   };
 
@@ -232,6 +254,13 @@ function App() {
 
       {renderCurrentView()}
 
+      {/* Email Status Message */}
+      {emailStatus && (
+        <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 max-w-sm z-50">
+          <p className="text-sm text-gray-900 dark:text-white">{emailStatus}</p>
+        </div>
+      )}
+
       {currentView === 'landing' && <Footer />}
 
       <CreateInvoiceModal
@@ -248,7 +277,10 @@ function App() {
           setIsEmailSetupModalOpen(false);
           setPendingEmailData(null);
         }}
-        onContinue={handleSendEmail}
+        onSendEmail={handleSendEmail}
+        onCopyEmail={handleCopyEmail}
+        employerEmail={pendingEmailData?.employerEmail || ''}
+        invoiceId={pendingEmailData?.invoiceId || ''}
       />
     </div>
   );

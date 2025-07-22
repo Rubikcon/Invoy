@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft, User, Wallet, Globe, Calendar, FileText, Copy, Mail, ExternalLink } from 'lucide-react';
 import { Invoice } from '../../types';
-import { openEmailClient } from '../../services/emailService';
+import { sendInvoiceEmail } from '../../services/emailService';
 
 interface FreelancerInvoiceViewProps {
   invoice: Invoice;
@@ -23,7 +23,7 @@ export default function FreelancerInvoiceView({ invoice, onBack }: FreelancerInv
     }
   };
 
-  const sendEmail = () => {
+  const sendEmail = async () => {
     const emailData = {
       employerEmail: invoice.employerEmail,
       freelancerName: invoice.freelancerName,
@@ -35,7 +35,12 @@ export default function FreelancerInvoiceView({ invoice, onBack }: FreelancerInv
       invoiceLink: invoiceLink
     };
     
-    openEmailClient(emailData);
+    const result = await sendInvoiceEmail(emailData);
+    if (result.success) {
+      alert(`✅ ${result.message}`);
+    } else {
+      alert(`❌ ${result.message}`);
+    }
   };
 
   return (
