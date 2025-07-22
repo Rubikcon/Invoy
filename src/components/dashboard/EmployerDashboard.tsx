@@ -1,16 +1,16 @@
 import React from 'react';
-import { User, Globe, Search, X, Mail, ExternalLink, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { LogOut } from 'lucide-react';
-import { WalletInfo, Invoice } from '../../types';
+import { User, Globe, Search, X, Mail, ExternalLink, CheckCircle, XCircle, Clock, LogOut, Wallet } from 'lucide-react';
+import { Invoice } from '../../types';
 import { invoiceStorage } from '../../services/invoiceStorage';
+import { useWallet } from '../../hooks/useWallet';
 
 interface EmployerDashboardProps {
-  walletInfo: WalletInfo;
-  onDisconnectWallet: () => void;
+  onBack: () => void;
   onViewInvoice?: (invoice: Invoice) => void;
 }
 
-export default function EmployerDashboard({ walletInfo, onDisconnectWallet, onViewInvoice }: EmployerDashboardProps) {
+export default function EmployerDashboard({ onBack, onViewInvoice }: EmployerDashboardProps) {
+  const { walletInfo, isConnecting, connectionError, connectWallet, disconnectWallet, formatAddress } = useWallet();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = React.useState<Invoice[]>([]);
@@ -50,9 +50,9 @@ export default function EmployerDashboard({ walletInfo, onDisconnectWallet, onVi
     .filter(inv => inv.status === 'Paid')
     .reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
 
-  const formatAddress = (address: string): string => {
-    if (!address) return '';
-    return `${address.slice(0, 8)}...${address.slice(-6)}`;
+  const handleDisconnectWallet = () => {
+    disconnectWallet();
+    onBack();
   };
 
   const getStatusColor = (status: string) => {
@@ -96,46 +96,85 @@ export default function EmployerDashboard({ walletInfo, onDisconnectWallet, onVi
               <p className="text-gray-600 dark:text-gray-300">Review invoices and approve payments</p>
             </div>
             
-            {/* Disconnect Wallet Button */}
+            {/* Action Buttons */}
             <div className="flex flex-col items-start md:items-end">
-              <button
-                onClick={onDisconnectWallet}
-                className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
-              >
-                <LogOut size={18} />
-                <span>Disconnect Wallet</span>
-              </button>
-              <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
-                {formatAddress(walletInfo.address)}
-              </span>
+              <div className="flex items-center space-x-3">
+                {!walletInfo.isConnected ? (
+                  <button
+                    onClick={connectWallet}
+                    disabled={isConnecting}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2 disabled:opacity-50"
+                  >
+                    {isConnecting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Connecting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wallet size={18} />
+                        <span>Connect Wallet</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleDisconnectWallet}
+                    className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+                  >
+                    <LogOut size={18} />
+                    <span>Disconnect</span>
+                  </button>
+                )}
+                <button
+                  onClick={onBack}
+                  className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  Back to Home
+                </button>
+              </div>
+              {walletInfo.isConnected && (
+                <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
+                  {formatAddress(walletInfo.address)}
+                </span>
+              )}
             </div>
           </div>
           
-          {/* Wallet Info Card */}
-          <div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors duration-300">
-              <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Connected Wallet</h3>
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <User size={14} className="text-gray-500" />
-                      <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono text-gray-900 dark:text-gray-100">
-                        {formatAddress(walletInfo.address)}
-                      </code>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Globe size={14} className="text-blue-500" />
-                      <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">
-                        {walletInfo.network}
-                      </span>
+          {/* Wallet Info Card - Only show if connected */}
+          {walletInfo.isConnected && (
+            <div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors duration-300">
+                <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Connected Wallet</h3>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <User size={14} className="text-gray-500" />
+                        <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono text-gray-900 dark:text-gray-100">
+                          {formatAddress(walletInfo.address)}
+                        </code>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Globe size={14} className="text-blue-500" />
+                        <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">
+                          {walletInfo.network}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
                 </div>
-                <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Connection Error */}
+          {connectionError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+              <p className="text-red-800 dark:text-red-200 text-sm">{connectionError}</p>
+            </div>
+          )}
         </div>
 
         {/* Stats */}

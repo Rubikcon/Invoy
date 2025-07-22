@@ -145,7 +145,9 @@ function App() {
 
   const handleEmployerLogin = async () => {
     setUserType('employer');
-    await connectWallet();
+    // For employers, we redirect to a separate employer portal
+    // In a real app, this would be a separate authentication system
+    setCurrentView('employer-dashboard');
   };
 
   const handleDisconnectWallet = () => {
@@ -156,12 +158,8 @@ function App() {
 
   // Auto-redirect to dashboard when wallet connects successfully
   React.useEffect(() => {
-    if (walletInfo.isConnected) {
-      if (userType === 'freelancer') {
-        setCurrentView('dashboard');
-      } else {
-        setCurrentView('employer-dashboard');
-      }
+    if (walletInfo.isConnected && userType === 'freelancer') {
+      setCurrentView('dashboard');
     }
   }, [walletInfo.isConnected, userType]);
 
@@ -293,8 +291,7 @@ function App() {
       case 'employer-dashboard':
         return (
           <EmployerDashboard
-            walletInfo={walletInfo}
-            onDisconnectWallet={handleDisconnectWallet}
+            onBack={() => setCurrentView('landing')}
             onViewInvoice={(invoice) => {
               setSelectedInvoice(invoice);
               setCurrentView('employer-invoice');

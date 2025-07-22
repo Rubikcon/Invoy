@@ -78,18 +78,9 @@ export default function Hero({ onConnectWallet, onCreateInvoice, onEmployerLogin
                 disabled={isConnecting}
                 className="flex-1 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold hover:border-green-500 hover:text-green-500 dark:hover:border-green-400 dark:hover:text-green-400 transition-all duration-200 flex items-center justify-center space-x-2 group disabled:opacity-50"
               >
-                {isConnecting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    <span>Connecting...</span>
-                  </>
-                ) : (
-                  <>
-                    <User size={20} />
-                    <span>Employer Login</span>
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
+                <User size={20} />
+                <span>Employer Portal</span>
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
 
