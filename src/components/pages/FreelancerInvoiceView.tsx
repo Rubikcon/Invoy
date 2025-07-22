@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, User, Wallet, Globe, Calendar, FileText, Copy, Mail, ExternalLink } from 'lucide-react';
 import { Invoice } from '../../types';
+import { openEmailClient } from '../../services/emailService';
 
 interface FreelancerInvoiceViewProps {
   invoice: Invoice;
@@ -23,23 +24,18 @@ export default function FreelancerInvoiceView({ invoice, onBack }: FreelancerInv
   };
 
   const sendEmail = () => {
-    const subject = `Invoice ${invoice.id} - Payment Request`;
-    const body = `Hi,
-
-I've created an invoice for the work completed. Please review and approve the payment at:
-
-${invoiceLink}
-
-Invoice Details:
-- Amount: ${invoice.amount} ETH
-- Network: ${invoice.network}
-- Description: ${invoice.description}
-
-Best regards,
-${invoice.freelancerName}`;
-
-    const mailtoLink = `mailto:${invoice.employerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink);
+    const emailData = {
+      employerEmail: invoice.employerEmail,
+      freelancerName: invoice.freelancerName,
+      freelancerEmail: invoice.freelancerEmail,
+      invoiceId: invoice.id,
+      amount: invoice.amount,
+      network: invoice.network,
+      description: invoice.description,
+      invoiceLink: invoiceLink
+    };
+    
+    openEmailClient(emailData);
   };
 
   return (

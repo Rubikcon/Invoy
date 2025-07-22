@@ -14,12 +14,16 @@ import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import EmployerInvoice from './components/pages/EmployerInvoice';
 import AboutUs from './components/pages/AboutUs';
 import FreelancerInvoiceView from './components/pages/FreelancerInvoiceView';
+import EmailSetupModal from './components/modals/EmailSetupModal';
+import { openEmailClient } from './services/emailService';
 
 function App() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { walletInfo, isConnecting, connectionError, connectWallet, disconnectWallet } = useWallet();
   const [currentView, setCurrentView] = React.useState<View>('landing');
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isEmailSetupModalOpen, setIsEmailSetupModalOpen] = React.useState(false);
+  const [pendingEmailData, setPendingEmailData] = React.useState<any>(null);
   const [invoices, setInvoices] = React.useState<Invoice[]>([
     {
       id: 'INV-001',
@@ -104,8 +108,31 @@ function App() {
     
     setInvoices(prev => [newInvoice, ...prev]);
     
-    // Show success message to freelancer
-    alert(`Invoice ${newInvoice.id} created successfully! An email with the review link has been sent to ${data.employerEmail}`);
+    // Prepare email data and show email setup modal
+    const emailData = {
+      employerEmail: data.employerEmail,
+      freelancerName: data.fullName,
+      freelancerEmail: data.email,
+      invoiceId: newInvoice.id,
+      amount: data.amount,
+      network: data.network,
+      description: data.description,
+      invoiceLink: `${window.location.origin}/invoice/${newInvoice.id}`
+    };
+    
+    setPendingEmailData(emailData);
+    setIsEmailSetupModalOpen(true);
+  };
+
+  const handleSendEmail = () => {
+    if (pendingEmailData) {
+      openEmailClient(pendingEmailData);
+      setIsEmailSetupModalOpen(false);
+      setPendingEmailData(null);
+      
+      // Show success message
+      alert(`Invoice ${pendingEmailData.invoiceId} created successfully! Your email client will open to send the invoice link to ${pendingEmailData.employerEmail}`);
+    }
   };
 
   const handleApproveInvoice = () => {
@@ -213,6 +240,15 @@ function App() {
         onSubmit={handleSubmitInvoice}
         walletAddress={walletInfo.address}
         currentNetwork={walletInfo.network}
+      />
+
+      <EmailSetupModal
+        isOpen={isEmailSetupModalOpen}
+        onClose={() => {
+          setIsEmailSetupModalOpen(false);
+          setPendingEmailData(null);
+        }}
+        onContinue={handleSendEmail}
       />
     </div>
   );
