@@ -447,10 +447,10 @@ export default function EmployerInvoice({ invoice: initialInvoice, onBack }: Emp
                   </p>
                   <div className="text-center">
                     <button
-                      onClick={() => window.close()}
+                      onClick={() => setCurrentView('employer-dashboard')}
                       className="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200"
                     >
-                      Close Window
+                      Back to Dashboard
                     </button>
                   </div>
                 </div>
@@ -623,12 +623,6 @@ export default function EmployerInvoice({ invoice: initialInvoice, onBack }: Emp
                       className="px-6 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200"
                     >
                       Continue
-                    </button>
-                    <button
-                      onClick={() => window.close()}
-                      className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-                    >
-                      Close Window
                     </button>
                   </div>
                 </div>
