@@ -121,7 +121,9 @@ function App() {
       const storedInvoices = invoiceStorage.getByWalletAddress(walletInfo.address);
       const convertedInvoices: Invoice[] = storedInvoices.map(stored => ({
         ...stored,
-        createdAt: new Date(stored.createdAt)
+        createdAt: new Date(stored.createdAt),
+        sentDate: stored.sentDate ? new Date(stored.sentDate) : undefined,
+        paidDate: stored.paidDate ? new Date(stored.paidDate) : undefined
       }));
       setInvoices(convertedInvoices);
     }
@@ -176,15 +178,20 @@ function App() {
       freelancerEmail: data.email,
       walletAddress: data.walletAddress,
       network: data.network,
+      token: data.token || 'ETH',
       role: data.role,
       description: data.description,
-      createdAt: new Date()
+      createdAt: new Date(),
+      sentDate: new Date(),
+      paidDate: undefined
     };
     
     // Save to storage
     const storedInvoice: StoredInvoice = {
       ...newInvoice,
-      createdAt: newInvoice.createdAt.toISOString()
+      createdAt: newInvoice.createdAt.toISOString(),
+      sentDate: newInvoice.sentDate?.toISOString(),
+      paidDate: newInvoice.paidDate?.toISOString()
     };
     invoiceStorage.save(storedInvoice);
     

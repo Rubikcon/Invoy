@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Wallet, Globe, AlertCircle } from 'lucide-react';
+import { X, Wallet, Globe, AlertCircle, Coins } from 'lucide-react';
 import { CreateInvoiceData } from '../../types';
 
 interface CreateInvoiceModalProps {
@@ -22,6 +22,7 @@ export default function CreateInvoiceModal({
     email: '',
     walletAddress: walletAddress,
     network: currentNetwork,
+    token: 'ETH',
     role: '',
     description: '',
     amount: '',
@@ -35,7 +36,8 @@ export default function CreateInvoiceModal({
       setFormData(prev => ({
         ...prev,
         walletAddress: walletAddress,
-        network: currentNetwork
+        network: currentNetwork,
+        token: 'ETH'
       }));
     }
   }, [isOpen, walletAddress, currentNetwork]);
@@ -48,6 +50,14 @@ export default function CreateInvoiceModal({
     'Base'
   ];
 
+  const tokens = [
+    'ETH',
+    'USDC',
+    'USDT',
+    'DAI',
+    'MATIC',
+    'ARB'
+  ];
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -76,6 +86,7 @@ export default function CreateInvoiceModal({
       email: '',
       walletAddress: walletAddress,
       network: currentNetwork,
+      token: 'ETH',
       role: '',
       description: '',
       amount: '',
@@ -281,6 +292,28 @@ export default function CreateInvoiceModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Token *
+                  </label>
+                  <div className="relative">
+                    <Coins size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <select
+                      value={formData.token}
+                      onChange={handleChange('token')}
+                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    >
+                      {tokens.map((token) => (
+                        <option key={token} value={token}>
+                          {token}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Employer's Email *
                   </label>
                   <input
@@ -299,7 +332,6 @@ export default function CreateInvoiceModal({
                     </p>
                   )}
                 </div>
-              </div>
             </div>
 
             {/* Submit Button */}

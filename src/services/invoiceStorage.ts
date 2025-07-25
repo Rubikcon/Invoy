@@ -3,14 +3,17 @@ export interface StoredInvoice {
   id: string;
   employerEmail: string;
   amount: string;
-  status: 'Pending' | 'Approved' | 'Paid' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Paid' | 'Rejected' | 'Draft' | 'Cancelled';
   freelancerName: string;
   freelancerEmail: string;
   walletAddress: string;
   network: string;
+  token: string;
   role: string;
   description: string;
   createdAt: string;
+  sentDate?: string;
+  paidDate?: string;
   rejectionReason?: string;
 }
 
