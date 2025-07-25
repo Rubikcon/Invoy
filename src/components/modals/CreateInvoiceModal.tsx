@@ -332,6 +332,7 @@ export default function CreateInvoiceModal({
                     </p>
                   )}
                 </div>
+              </div>
             </div>
 
             {/* Submit Button */}
