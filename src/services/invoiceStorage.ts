@@ -1,4 +1,6 @@
 // Global invoice storage service that works across different browsers/users
+import { notificationService } from './notificationService';
+
 export interface StoredInvoice {
   id: string;
   employerEmail: string;
@@ -91,6 +93,7 @@ export const invoiceStorage = {
       const globalInvoice = globalInvoices.find(inv => inv.id === id);
       
       if (globalInvoice) {
+        const oldStatus = globalInvoice.status;
         globalInvoice.status = status;
         if (rejectionReason) {
           globalInvoice.rejectionReason = rejectionReason;
@@ -108,6 +111,36 @@ export const invoiceStorage = {
             userInvoice.rejectionReason = rejectionReason;
           }
           localStorage.setItem(userKey, JSON.stringify(userInvoices));
+        }
+
+        // Create notifications for status changes
+        if (oldStatus !== status && (status === 'Approved' || status === 'Rejected' || status === 'Paid')) {
+          if (status === 'Approved') {
+            notificationService.createInvoiceNotification(
+              'invoice_approved',
+              globalInvoice.id,
+              globalInvoice.walletAddress.toLowerCase(),
+              globalInvoice.amount,
+              globalInvoice.employerEmail
+            );
+          } else if (status === 'Rejected') {
+            notificationService.createInvoiceNotification(
+              'invoice_rejected',
+              globalInvoice.id,
+              globalInvoice.walletAddress.toLowerCase(),
+              globalInvoice.amount,
+              globalInvoice.employerEmail,
+              rejectionReason
+            );
+          } else if (status === 'Paid') {
+            notificationService.createInvoiceNotification(
+              'invoice_paid',
+              globalInvoice.id,
+              globalInvoice.walletAddress.toLowerCase(),
+              globalInvoice.amount,
+              globalInvoice.employerEmail
+            );
+          }
         }
       }
     } catch (error) {

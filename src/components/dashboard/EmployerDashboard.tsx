@@ -4,6 +4,9 @@ import { Invoice } from '../../types';
 import { invoiceStorage } from '../../services/invoiceStorage';
 import { useWallet } from '../../hooks/useWallet';
 import EmployerInvoiceTable from './EmployerInvoiceTable';
+import NotificationBell from '../ui/NotificationBell';
+import NotificationBanner from '../ui/NotificationBanner';
+import { useNotifications } from '../../hooks/useNotifications';
 
 interface EmployerDashboardProps {
   onBack: () => void;
@@ -15,6 +18,10 @@ export default function EmployerDashboard({ onBack, onViewInvoice }: EmployerDas
   const [searchTerm, setSearchTerm] = React.useState('');
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = React.useState<Invoice[]>([]);
+
+  // Notifications - using a generic employer ID since we don't have specific employer auth
+  const employerId = 'employer_' + (walletInfo.address || 'anonymous');
+  const { notifications, unreadCount, refreshNotifications } = useNotifications(employerId);
 
   // Load all invoices that might be relevant to this employer
   React.useEffect(() => {
@@ -142,6 +149,13 @@ export default function EmployerDashboard({ onBack, onViewInvoice }: EmployerDas
             </div>
           </div>
           
+          {/* Notification Banner */}
+          <NotificationBanner 
+            userId={employerId}
+            notifications={notifications}
+            onNotificationsUpdate={refreshNotifications}
+          />
+          
           {/* Wallet Info Card - Only show if connected */}
           {walletInfo.isConnected && (
             <div>
@@ -164,7 +178,14 @@ export default function EmployerDashboard({ onBack, onViewInvoice }: EmployerDas
                       </div>
                     </div>
                   </div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                  <div className="flex items-center space-x-3">
+                    <NotificationBell 
+                      userId={employerId}
+                      notifications={notifications}
+                      onNotificationsUpdate={refreshNotifications}
+                    />
+                    <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -4,6 +4,9 @@ import { LogOut } from 'lucide-react';
 import { WalletInfo, Invoice } from '../../types';
 import InvoiceTable from './InvoiceTable';
 import { invoiceStorage } from '../../services/invoiceStorage';
+import NotificationBell from '../ui/NotificationBell';
+import NotificationBanner from '../ui/NotificationBanner';
+import { useNotifications } from '../../hooks/useNotifications';
 
 interface DashboardProps {
   walletInfo: WalletInfo;
@@ -18,6 +21,9 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filteredInvoices, setFilteredInvoices] = React.useState<Invoice[]>(invoices);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState<string | null>(null);
+
+  // Notifications
+  const { notifications, unreadCount, refreshNotifications } = useNotifications(walletInfo.address);
 
   // Filter invoices based on search term
   React.useEffect(() => {
@@ -85,6 +91,13 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
             </div>
           </div>
           
+          {/* Notification Banner */}
+          <NotificationBanner 
+            userId={walletInfo.address}
+            notifications={notifications}
+            onNotificationsUpdate={refreshNotifications}
+          />
+          
           {/* Wallet Info Card */}
           <div>
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors duration-300">
@@ -106,7 +119,14 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
                     </div>
                   </div>
                 </div>
-                <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                <div className="flex items-center space-x-3">
+                  <NotificationBell 
+                    userId={walletInfo.address}
+                    notifications={notifications}
+                    onNotificationsUpdate={refreshNotifications}
+                  />
+                  <div className="w-3 h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                </div>
               </div>
             </div>
           </div>

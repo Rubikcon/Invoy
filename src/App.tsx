@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { View, WalletInfo, Invoice, CreateInvoiceData } from './types';
 import { invoiceStorage, StoredInvoice } from './services/invoiceStorage';
+import { notificationService } from './services/notificationService';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useWallet } from './hooks/useWallet';
 import Navbar from './components/layout/Navbar';
@@ -194,6 +195,15 @@ function App() {
       paidDate: newInvoice.paidDate?.toISOString()
     };
     invoiceStorage.save(storedInvoice);
+    
+    // Create notification for employer (using a generic employer ID)
+    const employerId = 'employer_' + data.employerEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    notificationService.createNewInvoiceNotification(
+      newInvoice.id,
+      employerId,
+      data.fullName,
+      data.amount
+    );
     
     setInvoices(prev => [newInvoice, ...prev]);
     

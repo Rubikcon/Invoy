@@ -36,3 +36,14 @@ export interface WalletInfo {
 export type View = 'landing' | 'dashboard' | 'employer-dashboard' | 'employer-invoice' | 'about-us' | 'freelancer-invoice-view';
 
 export type UserType = 'freelancer' | 'employer';
+
+export interface Notification {
+  id: string;
+  type: 'invoice_approved' | 'invoice_rejected' | 'invoice_paid' | 'new_invoice' | 'payment_received' | 'system';
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: Date;
+  invoiceId?: string;
+  priority: 'low' | 'medium' | 'high';
+}
