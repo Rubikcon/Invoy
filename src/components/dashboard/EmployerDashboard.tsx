@@ -3,6 +3,7 @@ import { User, Globe, Search, X, Mail, ExternalLink, CheckCircle, XCircle, Clock
 import { Invoice } from '../../types';
 import { invoiceStorage } from '../../services/invoiceStorage';
 import { useWallet } from '../../hooks/useWallet';
+import EmployerInvoiceTable from './EmployerInvoiceTable';
 
 interface EmployerDashboardProps {
   onBack: () => void;
@@ -253,143 +254,11 @@ export default function EmployerDashboard({ onBack, onViewInvoice }: EmployerDas
           </div>
         )}
 
-        {/* Invoice Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors duration-300">
-          <div className="px-4 md:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">All Invoices</h2>
-          </div>
-
-          {filteredInvoices.length === 0 ? (
-            <div className="p-8 md:p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Mail size={32} className="text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No invoices found</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                {searchTerm ? `No invoices match "${searchTerm}"` : 'No invoices have been created yet'}
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Mobile Card View */}
-              <div className="md:hidden">
-                {filteredInvoices.map((invoice) => {
-                  const StatusIcon = getStatusIcon(invoice.status);
-                  return (
-                    <div key={invoice.id} className="p-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <code className="text-sm font-medium text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                          {invoice.id}
-                        </code>
-                        <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(invoice.status)}`}>
-                          <StatusIcon size={12} className="mr-1" />
-                          {invoice.status}
-                        </span>
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <User size={14} className="text-gray-400" />
-                          <span className="text-gray-900 dark:text-white truncate">{invoice.freelancerName}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Mail size={14} className="text-gray-400" />
-                          <span className="text-gray-600 dark:text-gray-300 truncate">{invoice.freelancerEmail}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium text-gray-900 dark:text-white">{invoice.amount} ETH</span>
-                          <button 
-                            onClick={() => onViewInvoice?.(invoice)}
-                            className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
-                          >
-                            <ExternalLink size={12} />
-                            <span className="text-xs">Review</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Invoice ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Freelancer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Freelancer Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {filteredInvoices.map((invoice) => {
-                      const StatusIcon = getStatusIcon(invoice.status);
-                      return (
-                        <tr key={invoice.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <code className="text-sm font-medium text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                              {invoice.id}
-                            </code>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center space-x-2">
-                              <User size={16} className="text-gray-400" />
-                              <div>
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">{invoice.freelancerName}</div>
-                                <div className="text-sm text-gray-500 dark:text-gray-400">{invoice.role}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center space-x-2">
-                              <Mail size={16} className="text-gray-400" />
-                              <span className="text-sm text-gray-900 dark:text-white">{invoice.freelancerEmail}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {invoice.amount} ETH
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(invoice.status)}`}>
-                              <StatusIcon size={12} className="mr-1" />
-                              {invoice.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <button 
-                              onClick={() => onViewInvoice?.(invoice)}
-                              className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
-                            >
-                              <ExternalLink size={14} />
-                              <span className="text-sm">Review</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
+        {/* Enhanced Invoice Table */}
+        <EmployerInvoiceTable 
+          invoices={filteredInvoices} 
+          onViewInvoice={onViewInvoice}
+        />
       </div>
     </div>
   );
