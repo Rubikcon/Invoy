@@ -33,6 +33,37 @@ export interface WalletInfo {
   isConnected: boolean;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'freelancer' | 'employer';
+  avatar?: string;
+  createdAt: Date;
+  lastLoginAt?: Date;
+  isEmailVerified: boolean;
+  walletAddress?: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role: 'freelancer' | 'employer';
+}
+
 export type View = 'landing' | 'dashboard' | 'employer-dashboard' | 'employer-invoice' | 'about-us' | 'freelancer-invoice-view';
 
 export type UserType = 'freelancer' | 'employer';

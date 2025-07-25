@@ -1,25 +1,19 @@
 import React from 'react';
-import { Wallet, FileText, ArrowRight, CheckCircle, Shield, Zap, User } from 'lucide-react';
+import { FileText, ArrowRight, CheckCircle, Shield, Zap, User, LogIn } from 'lucide-react';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
 import AnimatedHeroSlider from '../ui/AnimatedHeroSlider';
+import { User as UserType } from '../../types';
 
 interface HeroProps {
-  onConnectWallet: () => void;
+  user: UserType | null;
+  isAuthenticated: boolean;
+  onLogin: () => void;
   onCreateInvoice: () => void;
   onEmployerLogin: () => void;
-  isWalletConnected: boolean;
-  isConnecting?: boolean;
-  walletAddress?: string;
-  connectionError?: string;
 }
 
-export default function Hero({ onConnectWallet, onCreateInvoice, onEmployerLogin, isWalletConnected, isConnecting, walletAddress, connectionError }: HeroProps) {
+export default function Hero({ user, isAuthenticated, onLogin, onCreateInvoice, onEmployerLogin }: HeroProps) {
   const { ref: heroRef, isVisible: heroVisible } = useScrollAnimation(0.1);
-
-  const formatAddress = (address: string): string => {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
 
   return (
     <section id="hero" className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/20 pt-16 transition-colors duration-300">
@@ -55,18 +49,18 @@ export default function Hero({ onConnectWallet, onCreateInvoice, onEmployerLogin
 
             <div className="flex flex-col sm:flex-row gap-4">
               <button
-                onClick={onConnectWallet}
-                disabled={isConnecting}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 group"
+                onClick={isAuthenticated ? onCreateInvoice : onLogin}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2 group"
               >
-                {isConnecting ? (
+                {isAuthenticated ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Connecting...</span>
+                    <FileText size={20} />
+                    <span>Create Invoice</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 ) : (
                   <>
-                    <Wallet size={20} />
+                    <LogIn size={20} />
                     <span>Freelancer Login</span>
                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </>
@@ -75,8 +69,7 @@ export default function Hero({ onConnectWallet, onCreateInvoice, onEmployerLogin
               
               <button 
                 onClick={onEmployerLogin}
-                disabled={isConnecting}
-                className="flex-1 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold hover:border-green-500 hover:text-green-500 dark:hover:border-green-400 dark:hover:text-green-400 transition-all duration-200 flex items-center justify-center space-x-2 group disabled:opacity-50"
+                className="flex-1 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-lg font-semibold hover:border-green-500 hover:text-green-500 dark:hover:border-green-400 dark:hover:text-green-400 transition-all duration-200 flex items-center justify-center space-x-2 group"
               >
                 <User size={20} />
                 <span>Employer Portal</span>
@@ -84,30 +77,14 @@ export default function Hero({ onConnectWallet, onCreateInvoice, onEmployerLogin
               </button>
             </div>
 
-            {isWalletConnected && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 animate-slide-down">
+            {isAuthenticated && user && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 animate-slide-down">
                 <div className="flex items-center space-x-3">
-                  <CheckCircle size={20} className="text-green-600 dark:text-green-400" />
+                  <CheckCircle size={20} className="text-blue-600 dark:text-blue-400" />
                   <div>
-                    <p className="text-green-800 dark:text-green-200 font-medium">Wallet Connected</p>
-                    <p className="text-green-600 dark:text-green-400 text-sm font-mono">
-                      {formatAddress(walletAddress || '')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {connectionError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 animate-slide-down">
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">!</span>
-                  </div>
-                  <div>
-                    <p className="text-red-800 dark:text-red-200 font-medium">Connection Error</p>
-                    <p className="text-red-600 dark:text-red-400 text-sm">
-                      {connectionError}
+                    <p className="text-blue-800 dark:text-blue-200 font-medium">Welcome back, {user.name}!</p>
+                    <p className="text-blue-600 dark:text-blue-400 text-sm">
+                      Ready to create your next invoice?
                     </p>
                   </div>
                 </div>

@@ -1,9 +1,10 @@
 import React from 'react';
 import { Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
-import { View, WalletInfo, Invoice, CreateInvoiceData } from './types';
+import { View, WalletInfo, Invoice, CreateInvoiceData, User } from './types';
 import { invoiceStorage, StoredInvoice } from './services/invoiceStorage';
 import { notificationService } from './services/notificationService';
 import { useDarkMode } from './hooks/useDarkMode';
+import { useAuth } from './hooks/useAuth';
 import { useWallet } from './hooks/useWallet';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
@@ -19,6 +20,9 @@ import EmployerInvoice from './components/pages/EmployerInvoice';
 import AboutUs from './components/pages/AboutUs';
 import FreelancerInvoiceView from './components/pages/FreelancerInvoiceView';
 import EmailSetupModal from './components/modals/EmailSetupModal';
+import LoginModal from './components/auth/LoginModal';
+import RegisterModal from './components/auth/RegisterModal';
+import UserProfile from './components/auth/UserProfile';
 import { sendInvoiceEmail, copyInvoiceDetails } from './services/emailService';
 import { sendStatusUpdateEmail } from './services/emailService';
 
@@ -106,20 +110,25 @@ function EmployerInvoiceRoute() {
 function App() {
   const location = useLocation();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { user, isAuthenticated, isLoading: authLoading, error: authError, login, register, logout, updateProfile, clearError } = useAuth();
   const { walletInfo, isConnecting, connectionError, connectWallet, disconnectWallet } = useWallet();
   const [currentView, setCurrentView] = React.useState<View>('landing');
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = React.useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = React.useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
   const [isEmailSetupModalOpen, setIsEmailSetupModalOpen] = React.useState(false);
   const [pendingEmailData, setPendingEmailData] = React.useState<any>(null);
   const [emailStatus, setEmailStatus] = React.useState<string>('');
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
-  const [userType, setUserType] = React.useState<'freelancer' | 'employer'>('freelancer');
 
   // Load invoices from storage on component mount
   React.useEffect(() => {
-    if (walletInfo.isConnected && walletInfo.address && userType === 'freelancer') {
-      const storedInvoices = invoiceStorage.getByWalletAddress(walletInfo.address);
+    if (isAuthenticated && user && user.role === 'freelancer') {
+      // Use user's wallet address if available, otherwise use a user-specific key
+      const userKey = user.walletAddress || user.id;
+      const storedInvoices = invoiceStorage.getByWalletAddress(userKey);
       const convertedInvoices: Invoice[] = storedInvoices.map(stored => ({
         ...stored,
         createdAt: new Date(stored.createdAt),
@@ -128,45 +137,82 @@ function App() {
       }));
       setInvoices(convertedInvoices);
     }
-  }, [walletInfo.isConnected, walletInfo.address, userType]);
+  }, [isAuthenticated, user]);
 
   // Check if we're on an invoice route
   const isInvoiceRoute = location.pathname.startsWith('/invoice/');
 
+  // Auto-redirect to dashboard when user logs in as freelancer
+  React.useEffect(() => {
+    if (isAuthenticated && user && user.role === 'freelancer' && currentView === 'landing') {
+      setCurrentView('dashboard');
+    }
+  }, [isAuthenticated, user, currentView]);
+
   const handleCreateInvoice = () => {
-    if (!walletInfo.isConnected && !isConnecting) {
+    if (!isAuthenticated) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+    
+    // Check if user needs to connect wallet for invoice creation
+    if (user?.role === 'freelancer' && !user.walletAddress && !walletInfo.isConnected) {
+      // Prompt to connect wallet first
       connectWallet();
       return;
     }
+    
     setIsCreateModalOpen(true);
   };
 
-  const handleConnectWallet = async () => {
-    setUserType('freelancer');
-    await connectWallet();
-  };
-
   const handleEmployerLogin = async () => {
-    setUserType('employer');
-    // For employers, we redirect to a separate employer portal
-    // In a real app, this would be a separate authentication system
-    setCurrentView('employer-dashboard');
+    if (!isAuthenticated) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+    
+    if (user?.role === 'employer') {
+      setCurrentView('employer-dashboard');
+    } else {
+      // Show message that this is for employers only
+      alert('This section is for employers only. Please create an employer account.');
+    }
   };
 
-  const handleDisconnectWallet = () => {
-    disconnectWallet();
-    setUserType('freelancer');
+  const handleLogin = () => {
+    setIsLoginModalOpen(true);
+  };
+
+  const handleLogout = () => {
+    logout();
+    disconnectWallet(); // Also disconnect wallet
     setCurrentView('landing');
   };
 
-  // Auto-redirect to dashboard when wallet connects successfully
+  const handleShowProfile = () => {
+    setIsProfileModalOpen(true);
+  };
+
+  const handleSwitchToRegister = () => {
+    setIsLoginModalOpen(false);
+    setIsRegisterModalOpen(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setIsRegisterModalOpen(false);
+    setIsLoginModalOpen(true);
+  };
+
+  // Update user profile with wallet address when wallet connects
   React.useEffect(() => {
-    if (walletInfo.isConnected && userType === 'freelancer') {
-      setCurrentView('dashboard');
+    if (walletInfo.isConnected && user && user.role === 'freelancer' && user.walletAddress !== walletInfo.address) {
+      updateProfile({ walletAddress: walletInfo.address });
     }
-  }, [walletInfo.isConnected, userType]);
+  }, [walletInfo.isConnected, walletInfo.address, user, updateProfile]);
 
   const handleSubmitInvoice = (data: CreateInvoiceData) => {
+    if (!user) return;
+    
     // Generate a more unique invoice ID
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -285,12 +331,16 @@ function App() {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'dashboard':
+        if (!isAuthenticated || !user || user.role !== 'freelancer') {
+          setCurrentView('landing');
+          return null;
+        }
         return (
           <Dashboard
-            walletInfo={walletInfo}
+            walletInfo={user.walletAddress ? { ...walletInfo, address: user.walletAddress, isConnected: true } : walletInfo}
             invoices={invoices}
             onCreateInvoice={handleCreateInvoice}
-            onDisconnectWallet={handleDisconnectWallet}
+            onDisconnectWallet={handleLogout}
             onViewInvoice={(invoice) => {
               setSelectedInvoice(invoice);
               setCurrentView('freelancer-invoice-view');
@@ -299,8 +349,8 @@ function App() {
               // Remove from state
               setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
               // Remove from storage
-              if (walletInfo.address) {
-                invoiceStorage.delete(invoiceId, walletInfo.address);
+              if (user?.walletAddress || user?.id) {
+                invoiceStorage.delete(invoiceId, user.walletAddress || user.id);
               }
             }}
           />
@@ -339,13 +389,11 @@ function App() {
         return (
           <>
             <Hero
-              onConnectWallet={handleConnectWallet}
+              user={user}
+              isAuthenticated={isAuthenticated}
+              onLogin={handleLogin}
               onCreateInvoice={handleCreateInvoice}
               onEmployerLogin={handleEmployerLogin}
-              isWalletConnected={walletInfo.isConnected}
-              isConnecting={isConnecting}
-              walletAddress={walletInfo.address}
-              connectionError={connectionError}
             />
             <Features />
             <Testimonials />
@@ -367,14 +415,14 @@ function App() {
           {!isInvoiceRoute && (
             <Navbar
               currentView={currentView}
-              isWalletConnected={walletInfo.isConnected}
+              user={user}
+              isAuthenticated={isAuthenticated}
               onViewChange={setCurrentView}
-              onConnectWallet={handleConnectWallet}
-              onDisconnectWallet={disconnectWallet}
-              walletAddress={walletInfo.address}
+              onLogin={handleLogin}
+              onLogout={handleLogout}
+              onShowProfile={handleShowProfile}
               isDarkMode={isDarkMode}
               onToggleDarkMode={toggleDarkMode}
-              connectionError={connectionError}
             />
           )}
 
@@ -393,9 +441,43 @@ function App() {
             isOpen={isCreateModalOpen}
             onClose={() => setIsCreateModalOpen(false)}
             onSubmit={handleSubmitInvoice}
-            walletAddress={walletInfo.address}
-            currentNetwork={walletInfo.network}
+            walletAddress={user?.walletAddress || walletInfo.address}
+            currentNetwork={walletInfo.network || 'Ethereum'}
           />
+
+          <LoginModal
+            isOpen={isLoginModalOpen}
+            onClose={() => {
+              setIsLoginModalOpen(false);
+              clearError();
+            }}
+            onLogin={login}
+            onSwitchToRegister={handleSwitchToRegister}
+            isLoading={authLoading}
+            error={authError}
+          />
+
+          <RegisterModal
+            isOpen={isRegisterModalOpen}
+            onClose={() => {
+              setIsRegisterModalOpen(false);
+              clearError();
+            }}
+            onRegister={register}
+            onSwitchToLogin={handleSwitchToLogin}
+            isLoading={authLoading}
+            error={authError}
+          />
+
+          {user && (
+            <UserProfile
+              isOpen={isProfileModalOpen}
+              onClose={() => setIsProfileModalOpen(false)}
+              user={user}
+              onUpdateProfile={updateProfile}
+              isLoading={authLoading}
+            />
+          )}
 
           <EmailSetupModal
             isOpen={isEmailSetupModalOpen}

@@ -1,36 +1,46 @@
 import React from 'react';
-import { Wallet, Menu, X, LogOut } from 'lucide-react';
+import { Wallet, Menu, X, LogOut, User, Settings } from 'lucide-react';
 import DarkModeToggle from '../ui/DarkModeToggle';
+import { User as UserType } from '../../types';
 
 interface NavbarProps {
   currentView: string;
-  isWalletConnected: boolean;
+  user: UserType | null;
+  isAuthenticated: boolean;
   onViewChange: (view: string) => void;
-  onConnectWallet: () => void;
-  onDisconnectWallet: () => void;
-  walletAddress: string;
+  onLogin: () => void;
+  onLogout: () => void;
+  onShowProfile: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
-  connectionError?: string;
 }
 
 export default function Navbar({ 
   currentView, 
-  isWalletConnected, 
+  user,
+  isAuthenticated,
   onViewChange, 
-  onConnectWallet, 
-  onDisconnectWallet,
-  walletAddress,
+  onLogin,
+  onLogout,
+  onShowProfile,
   isDarkMode, 
-  onToggleDarkMode,
-  connectionError
+  onToggleDarkMode
 }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
 
-  const formatAddress = (address: string): string => {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
+  // Close user menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.user-menu-container')) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const scrollToSection = (sectionId: string) => {
     if (currentView !== 'landing') {
@@ -55,7 +65,7 @@ export default function Navbar({
     { label: 'FAQs', action: () => scrollToSection('faq') },
   ];
 
-  if (isWalletConnected) {
+  if (isAuthenticated && user) {
     navItems.push({ label: 'Dashboard', action: () => onViewChange('dashboard') });
   }
 
@@ -126,7 +136,7 @@ export default function Navbar({
           </div>
 
           {/* Desktop Navigation */}
-          {!isWalletConnected && (
+          {!isAuthenticated && (
             <div className="hidden md:flex items-center space-x-8">
               {navItems.slice(0, -1).map((item) => (
                 <button
@@ -140,19 +150,66 @@ export default function Navbar({
             </div>
           )}
 
-          {/* Dashboard title when wallet is connected */}
+          {/* User Info when authenticated */}
+          {isAuthenticated && user && (
+            <div className="hidden md:flex items-center space-x-4">
+              <span className="text-gray-700 dark:text-gray-300">
+                Welcome, {user.name}
+              </span>
+            </div>
+          )}
 
-          {/* Dark Mode Toggle & Connect Wallet Button */}
+          {/* Dark Mode Toggle & Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {!isWalletConnected && <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />}
-            {!isWalletConnected && (
+            <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
+            
+            {!isAuthenticated ? (
               <button
-                onClick={onConnectWallet}
+                onClick={onLogin}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
               >
-                <Wallet size={18} />
-                <span>Connect Wallet</span>
+                <User size={18} />
+                <span>Sign In</span>
               </button>
+            ) : (
+              <div className="relative user-menu-container">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <User size={16} className="text-white" />
+                  </div>
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">{user.name}</span>
+                </button>
+
+                {/* User Dropdown Menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                    <button
+                      onClick={() => {
+                        onShowProfile();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
+                    >
+                      <Settings size={16} />
+                      <span>Profile</span>
+                    </button>
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
+                    >
+                      <LogOut size={16} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -171,7 +228,7 @@ export default function Navbar({
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col space-y-3">
-              {!isWalletConnected && (
+              {!isAuthenticated && (
                 <>
                   {navItems.slice(0, -1).map((item) => (
                     <button
@@ -185,23 +242,57 @@ export default function Navbar({
                 </>
               )}
               
-              <div className={`flex items-center ${isWalletConnected ? 'justify-end' : 'justify-between'} pt-3 border-t border-gray-200 dark:border-gray-700`}>
-                {!isWalletConnected && <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />}
-                {!isWalletConnected && (
+              {isAuthenticated && user && (
+                <>
                   <button
                     onClick={() => {
-                      onConnectWallet();
+                      onViewChange('dashboard');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => {
+                      onShowProfile();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors duration-200 text-left px-2 py-1"
+                  >
+                    Profile
+                  </button>
+                </>
+              )}
+              
+              <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
+                {!isAuthenticated ? (
+                  <button
+                    onClick={() => {
+                      onLogin();
                       setIsMobileMenuOpen(false);
                     }}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
                   >
-                    <Wallet size={16} />
-                    <span>Connect</span>
+                    <User size={16} />
+                    <span>Sign In</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      onLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 flex items-center space-x-2"
+                  >
+                    <LogOut size={16} />
+                    <span>Sign Out</span>
                   </button>
                 )}
               </div>
-              </div>
             </div>
+          </div>
         )}
       </div>
     </nav>
