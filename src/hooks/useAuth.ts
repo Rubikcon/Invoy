@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, AuthState, LoginCredentials, RegisterData } from '../types';
 import { secureAuthService } from '../services/secureAuthService';
+import sessionManager from '../services/sessionManager';
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -16,26 +17,39 @@ export function useAuth() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        if (await secureAuthService.isSessionValid()) {
-          const user = await secureAuthService.getCurrentUser();
-          if (user) {
-            setAuthState({
-              user,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null
-            });
-            return;
-          }
-        }
+        const sessionInfo = secureAuthService.getSessionInfo();
         
-        // No valid session
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: null
-        });
+        if (sessionInfo.isAuthenticated && sessionInfo.user) {
+          setAuthState({
+            user: sessionInfo.user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null
+          });
+        } else {
+          // Try to validate session with backend
+          const isValid = await secureAuthService.isSessionValid();
+          if (isValid) {
+            const user = await secureAuthService.getCurrentUser();
+            if (user) {
+              setAuthState({
+                user,
+                isAuthenticated: true,
+                isLoading: false,
+                error: null
+              });
+              return;
+            }
+          }
+          
+          // No valid session
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null
+          });
+        }
       } catch (error) {
         setAuthState({
           user: null,
@@ -47,6 +61,29 @@ export function useAuth() {
     };
 
     checkSession();
+  }, []);
+
+  // Listen for session changes
+  useEffect(() => {
+    const handleSessionChange = () => {
+      const sessionInfo = secureAuthService.getSessionInfo();
+      
+      if (!sessionInfo.isAuthenticated) {
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null
+        });
+      }
+    };
+
+    // Listen for storage changes (multi-tab sync)
+    window.addEventListener('storage', handleSessionChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleSessionChange);
+    };
   }, []);
 
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
@@ -114,7 +151,7 @@ export function useAuth() {
   };
 
   const logout = () => {
-    secureAuthService.logout();
+    secureAuthService.logout(); // This will also clear the session
     setAuthState({
       user: null,
       isAuthenticated: false,

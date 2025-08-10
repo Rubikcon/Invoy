@@ -1,6 +1,8 @@
 // Secure authentication service using backend APIs
 import { User, LoginCredentials, RegisterData } from '../types';
 import apiClient from './apiClient';
+import sessionManager from './sessionManager';
+import jwtService from './jwtService';
 
 export const secureAuthService = {
   // Register new user
@@ -9,6 +11,11 @@ export const secureAuthService = {
       const response = await apiClient.register(data);
       
       if (response.success && response.user) {
+        // Set session with tokens
+        if (response.token) {
+          sessionManager.setSession(response.token, undefined, response.user);
+        }
+
         const user: User = {
           id: response.user.id,
           email: response.user.email,
@@ -37,6 +44,11 @@ export const secureAuthService = {
       const response = await apiClient.login(credentials);
       
       if (response.success && response.user) {
+        // Set session with tokens
+        if (response.token) {
+          sessionManager.setSession(response.token, undefined, response.user);
+        }
+
         const user: User = {
           id: response.user.id,
           email: response.user.email,
@@ -62,6 +74,12 @@ export const secureAuthService = {
   // Get current user
   async getCurrentUser(): Promise<User | null> {
     try {
+      // Check session validity first
+      const isValid = await sessionManager.validateSession();
+      if (!isValid) {
+        return null;
+      }
+
       const response = await apiClient.getCurrentUser();
       
       // Handle 401 (unauthorized) as expected behavior for unauthenticated users
@@ -94,8 +112,11 @@ export const secureAuthService = {
   async logout(): Promise<void> {
     try {
       await apiClient.logout();
+      sessionManager.clearSession();
     } catch (error) {
       console.error('Logout error:', error);
+      // Clear session even if API call fails
+      sessionManager.clearSession();
     }
   },
 
@@ -110,6 +131,12 @@ export const secureAuthService = {
       const response = await apiClient.updateProfile(profileUpdates);
       
       if (response.success && response.user) {
+        // Update session with new user data
+        const currentToken = jwtService.getAccessToken();
+        if (currentToken) {
+          sessionManager.setSession(currentToken, undefined, response.user);
+        }
+
         const user: User = {
           id: response.user.id,
           email: response.user.email,
@@ -145,6 +172,11 @@ export const secureAuthService = {
       }
       
       if (response.success && response.user) {
+        // Set session with tokens
+        if (response.token) {
+          sessionManager.setSession(response.token, undefined, response.user);
+        }
+
         const user: User = {
           id: response.user.id,
           email: response.user.email,
@@ -170,14 +202,30 @@ export const secureAuthService = {
   // Check if session is valid
   async isSessionValid(): Promise<boolean> {
     try {
-      const response = await apiClient.getCurrentUser();
-      // 401 means unauthenticated, which is expected - not an error
-      if (response.status === 401) {
-        return false;
-      }
-      return response.success;
+      return await sessionManager.validateSession();
     } catch (error) {
       return false;
     }
+  },
+
+  // Get session info
+  getSessionInfo(): {
+    isAuthenticated: boolean;
+    user: any | null;
+    tokenExpiry: number | null;
+    timeUntilExpiry: number | null;
+  } {
+    const sessionState = sessionManager.getSessionState();
+    return {
+      isAuthenticated: sessionState.isAuthenticated,
+      user: sessionState.user,
+      tokenExpiry: sessionState.tokenExpiry,
+      timeUntilExpiry: sessionManager.getTimeUntilExpiry()
+    };
+  },
+
+  // Force token refresh
+  async refreshToken(): Promise<boolean> {
+    return await sessionManager.refreshTokenIfNeeded();
   }
 };

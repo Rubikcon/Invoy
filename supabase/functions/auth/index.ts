@@ -63,11 +63,42 @@ interface LoginRequest {
 }
 
 // Generate JWT token
-async function generateJWT(user: User): Promise<string> {
-  const payload = {
+async function generateJWT(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+  const now = new Date()
+  const accessTokenExpiry = new Date(now.getTime() + 15 * 60 * 1000) // 15 minutes
+  const refreshTokenExpiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days
+
+  // Access token payload
+  const accessPayload = {
     sub: user.id,
     email: user.email,
     role: user.role,
+    type: 'access',
+    iat: getNumericDate(now),
+    exp: getNumericDate(accessTokenExpiry),
+  }
+
+  // Refresh token payload
+  const refreshPayload = {
+    sub: user.id,
+    email: user.email,
+    type: 'refresh',
+    iat: getNumericDate(now),
+    exp: getNumericDate(refreshTokenExpiry),
+  }
+
+  const accessToken = await create({ alg: "HS256", typ: "JWT" }, accessPayload, JWT_SECRET)
+  const refreshToken = await create({ alg: "HS256", typ: "JWT" }, refreshPayload, JWT_SECRET)
+
+  return { accessToken, refreshToken }
+}
+
+// Generate refresh token
+async function generateRefreshToken(user: User): Promise<string> {
+  const payload = {
+    sub: user.id,
+    email: user.email,
+    type: 'refresh',
     iat: getNumericDate(new Date()),
     exp: getNumericDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days
   }
@@ -215,7 +246,7 @@ serve(async (req) => {
       }
 
       // Generate JWT token
-      const token = await generateJWT(user)
+      const tokens = await generateJWT(user)
 
       // Return user data (without password hash)
       const { password_hash, ...userResponse } = user
@@ -224,7 +255,8 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           user: userResponse,
-          token,
+          token: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
           message: 'Registration successful'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -277,7 +309,7 @@ serve(async (req) => {
         .eq('id', user.id)
 
       // Generate JWT token
-      const token = await generateJWT(user)
+      const tokens = await generateJWT(user)
 
       // Return user data (without password hash)
       const { password_hash, ...userResponse } = user
@@ -286,7 +318,8 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           user: userResponse,
-          token,
+          token: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
           message: 'Login successful'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -391,19 +424,23 @@ serve(async (req) => {
 
     // Refresh token endpoint
     if (path === '/refresh' && method === 'POST') {
-      const authHeader = req.headers.get('Authorization')
+      const body = await req.json()
+      const refreshToken = body.refreshToken
       
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (!refreshToken) {
         return new Response(
-          JSON.stringify({ error: 'Missing or invalid authorization header' }),
+          JSON.stringify({ error: 'Missing refresh token' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
-      const token = authHeader.substring(7)
-      
       try {
-        const payload = await verifyJWT(token)
+        const payload = await verifyJWT(refreshToken)
+        
+        // Verify it's a refresh token
+        if (payload.type !== 'refresh') {
+          throw new Error('Invalid token type')
+        }
         
         // Get user from database
         const { data: user, error } = await supabase
@@ -419,11 +456,15 @@ serve(async (req) => {
           )
         }
 
-        // Generate new JWT token
-        const newToken = await generateJWT(user)
+        // Generate new access token
+        const tokens = await generateJWT(user)
 
         return new Response(
-          JSON.stringify({ success: true, token: newToken }),
+          JSON.stringify({ 
+            success: true, 
+            token: tokens.accessToken,
+            refreshToken: tokens.refreshToken
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       } catch (error) {

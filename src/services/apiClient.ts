@@ -1,4 +1,7 @@
 // API client for secure backend communication
+import jwtService from './jwtService';
+import sessionManager from './sessionManager';
+
 const API_BASE_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1';
 
 interface ApiResponse<T = any> {
@@ -13,25 +16,39 @@ interface ApiResponse<T = any> {
 
 class ApiClient {
   private token: string | null = null;
+  private requestQueue: Array<() => void> = [];
+  private isRefreshing = false;
 
   constructor() {
-    // Load token from localStorage on initialization
-    this.token = localStorage.getItem('auth_token');
+    // Load token from JWT service on initialization
+    this.token = jwtService.getAccessToken();
   }
 
   setToken(token: string | null) {
     this.token = token;
-    if (token) {
-      localStorage.setItem('auth_token', token);
-    } else {
-      localStorage.removeItem('auth_token');
-    }
+  }
+
+  // Add request to queue during token refresh
+  private addToQueue(callback: () => void): void {
+    this.requestQueue.push(callback);
+  }
+
+  // Process queued requests after token refresh
+  private processQueue(error: any = null): void {
+    this.requestQueue.forEach(callback => callback());
+    this.requestQueue = [];
+    this.isRefreshing = false;
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    // Check if we need to refresh token before making request
+    if (this.token && jwtService.shouldRefreshToken(this.token)) {
+      await this.handleTokenRefresh();
+    }
+
     const url = `${API_BASE_URL}${endpoint}`;
     
     const headers: HeadersInit = {
@@ -50,6 +67,15 @@ class ApiClient {
       });
 
       const data = await response.json();
+
+      // Handle 401 responses (token expired/invalid)
+      if (response.status === 401 && this.token && !endpoint.includes('/auth/refresh')) {
+        const refreshed = await this.handleTokenRefresh();
+        if (refreshed) {
+          // Retry the original request with new token
+          return this.request(endpoint, options);
+        }
+      }
 
       if (!response.ok) {
         return {
@@ -72,6 +98,28 @@ class ApiClient {
     }
   }
 
+  // Handle token refresh with queue management
+  private async handleTokenRefresh(): Promise<boolean> {
+    if (this.isRefreshing) {
+      // If already refreshing, wait for it to complete
+      return new Promise((resolve) => {
+        this.addToQueue(() => resolve(!!this.token));
+      });
+    }
+
+    this.isRefreshing = true;
+
+    try {
+      const refreshed = await sessionManager.refreshTokenIfNeeded();
+      this.token = jwtService.getAccessToken();
+      this.processQueue();
+      return refreshed;
+    } catch (error) {
+      this.processQueue(error);
+      return false;
+    }
+  }
+
   // Authentication endpoints
   async register(userData: {
     name: string;
@@ -83,10 +131,6 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(userData),
     });
-
-    if (response.success && response.token) {
-      this.setToken(response.token);
-    }
 
     return response;
   }
@@ -100,10 +144,6 @@ class ApiClient {
       body: JSON.stringify(credentials),
     });
 
-    if (response.success && response.token) {
-      this.setToken(response.token);
-    }
-
     return response;
   }
 
@@ -112,7 +152,6 @@ class ApiClient {
       method: 'POST',
     });
 
-    this.setToken(null);
     return response;
   }
 
@@ -134,13 +173,15 @@ class ApiClient {
   }
 
   async refreshToken(): Promise<ApiResponse> {
+    const refreshToken = jwtService.getRefreshToken();
+    if (!refreshToken) {
+      return { success: false, error: 'No refresh token available' };
+    }
+
     const response = await this.request('/auth/refresh', {
       method: 'POST',
+      body: JSON.stringify({ refreshToken }),
     });
-
-    if (response.success && response.token) {
-      this.setToken(response.token);
-    }
 
     return response;
   }
@@ -152,10 +193,6 @@ class ApiClient {
       body: JSON.stringify({ code, redirect_uri: redirectUri, role }),
     });
 
-    if (response.success && response.token) {
-      this.setToken(response.token);
-    }
-
     return response;
   }
 
@@ -165,11 +202,21 @@ class ApiClient {
       body: JSON.stringify({ code, role }),
     });
 
-    if (response.success && response.token) {
-      this.setToken(response.token);
+    return response;
+  }
+
+  // Get current token info
+  getTokenInfo(): { isValid: boolean; expiresIn: number | null; user: any | null } {
+    if (!this.token) {
+      return { isValid: false, expiresIn: null, user: null };
     }
 
-    return response;
+    const isValid = !jwtService.isTokenExpired(this.token);
+    const user = jwtService.getUserFromToken(this.token);
+    const payload = jwtService.decodeToken(this.token);
+    const expiresIn = payload ? (payload.exp * 1000 - Date.now()) : null;
+
+    return { isValid, expiresIn, user };
   }
 }
 

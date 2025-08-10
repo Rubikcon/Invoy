@@ -1,6 +1,7 @@
 import React from 'react';
 import { Wallet, Menu, X, LogOut, User, Settings } from 'lucide-react';
 import DarkModeToggle from '../ui/DarkModeToggle';
+import SessionTimer from '../ui/SessionTimer';
 import { User as UserType } from '../../types';
 
 interface NavbarProps {
@@ -153,6 +154,7 @@ export default function Navbar({
           {/* User Info when authenticated */}
           {isAuthenticated && user && (
             <div className="hidden md:flex items-center space-x-4">
+              <SessionTimer showTimer={true} className="hidden lg:flex" />
               <span className="text-gray-700 dark:text-gray-300">
                 Welcome, {user.name}
               </span>
@@ -186,6 +188,9 @@ export default function Navbar({
                 {/* User Dropdown Menu */}
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                      <SessionTimer showTimer={true} />
+                    </div>
                     <button
                       onClick={() => {
                         onShowProfile();
@@ -279,16 +284,19 @@ export default function Navbar({
                     <span>Sign In</span>
                   </button>
                 ) : (
-                  <button
-                    onClick={() => {
-                      onLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 flex items-center space-x-2"
-                  >
-                    <LogOut size={16} />
-                    <span>Sign Out</span>
-                  </button>
+                  <div className="flex flex-col space-y-2">
+                    <SessionTimer showTimer={true} className="px-2" />
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 flex items-center space-x-2"
+                    >
+                      <LogOut size={16} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
