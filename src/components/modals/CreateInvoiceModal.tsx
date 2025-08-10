@@ -4,6 +4,7 @@ import { CreateInvoiceData } from '../../types';
 import MDEditor from '@uiw/react-md-editor';
 import { useToast } from '../../hooks/useToast';
 import { invoiceService } from '../../services/invoiceService';
+import { useBlockchain } from '../../hooks/useBlockchain';
 
 interface CreateInvoiceModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function CreateInvoiceModal({
   currentNetwork 
 }: CreateInvoiceModalProps) {
   const { success, error, warning } = useToast();
+  const { registerInvoice: registerOnBlockchain, generateInvoiceHash, isInitialized: blockchainInitialized } = useBlockchain();
   const [formData, setFormData] = React.useState<CreateInvoiceData>({
     fullName: '',
     email: '',
@@ -144,6 +146,43 @@ export default function CreateInvoiceModal({
       const result = await invoiceService.submitInvoice(formData);
       
       if (result.success) {
+        // Register on blockchain if available
+        if (blockchainInitialized && result.invoice) {
+          try {
+            const invoice: Invoice = {
+              id: result.invoice.invoice_number,
+              employerEmail: result.invoice.employer_email,
+              amount: result.invoice.amount.toString(),
+              status: result.invoice.status,
+              freelancerName: result.invoice.freelancer_name,
+              freelancerEmail: result.invoice.freelancer_email,
+              walletAddress: result.invoice.wallet_address,
+              network: result.invoice.network,
+              token: result.invoice.token,
+              role: result.invoice.role,
+              description: result.invoice.description,
+              createdAt: new Date(result.invoice.created_at)
+            };
+            
+            const blockchainResult = await registerOnBlockchain(
+              invoice,
+              walletAddress,
+              '0x...' // Employer address would need to be resolved
+            );
+            
+            if (blockchainResult.success) {
+              success('Invoice Created', 'Invoice submitted and registered on blockchain successfully');
+            } else {
+              success('Invoice Created', 'Invoice submitted successfully (blockchain registration pending)');
+              warning('Blockchain Warning', blockchainResult.message);
+            }
+          } catch (blockchainError) {
+            success('Invoice Created', 'Invoice submitted successfully (blockchain unavailable)');
+          }
+        } else {
+          success('Invoice Sent', 'Invoice submitted successfully and ready to send to employer');
+        }
+        
         success('Invoice Sent', 'Invoice submitted successfully and ready to send to employer');
         onSubmit(formData, false);
         onClose();
