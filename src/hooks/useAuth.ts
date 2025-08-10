@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, AuthState, LoginCredentials, RegisterData } from '../types';
-import { authService } from '../services/authService';
-import { socialAuthService } from '../services/socialAuthService';
+import { secureAuthService } from '../services/secureAuthService';
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -17,8 +16,8 @@ export function useAuth() {
   useEffect(() => {
     const checkSession = () => {
       try {
-        if (authService.isSessionValid()) {
-          const user = authService.getCurrentUser();
+        if (await secureAuthService.isSessionValid()) {
+          const user = await secureAuthService.getCurrentUser();
           if (user) {
             setAuthState({
               user,
@@ -54,7 +53,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await authService.login(credentials);
+      const result = await secureAuthService.login(credentials);
       
       if (result.success && result.user) {
         setAuthState({
@@ -86,24 +85,16 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await authService.register(data);
+      const result = await secureAuthService.register(data);
       
       if (result.success && result.user) {
-        // Auto-login after successful registration
-        const loginResult = await authService.login({
-          email: data.email,
-          password: data.password
+        setAuthState({
+          user: result.user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
         });
-        
-        if (loginResult.success && loginResult.user) {
-          setAuthState({
-            user: loginResult.user,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          });
-          return true;
-        }
+        return true;
       }
       
       setAuthState(prev => ({
@@ -123,7 +114,7 @@ export function useAuth() {
   };
 
   const logout = () => {
-    authService.logout();
+    secureAuthService.logout();
     setAuthState({
       user: null,
       isAuthenticated: false,
@@ -138,7 +129,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await authService.updateProfile(authState.user.id, updates);
+      const result = await secureAuthService.updateProfile(updates);
       
       if (result.success && result.user) {
         setAuthState(prev => ({
@@ -170,26 +161,11 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = provider === 'google' 
-        ? await socialAuthService.signInWithGoogle()
-        : await socialAuthService.signInWithGitHub();
+      // For demo purposes, simulate OAuth flow
+      const mockCode = 'mock_oauth_code_' + Date.now();
+      const result = await secureAuthService.socialLogin(provider, mockCode);
       
       if (result.success && result.user) {
-        // Create session
-        const session = {
-          userId: result.user.id,
-          email: result.user.email,
-          role: result.user.role,
-          loginTime: new Date().toISOString()
-        };
-        
-        localStorage.setItem('invoy_session', JSON.stringify(session));
-        localStorage.setItem('invoy_current_user', JSON.stringify({
-          ...result.user,
-          createdAt: result.user.createdAt.toISOString(),
-          lastLoginAt: new Date().toISOString()
-        }));
-
         setAuthState({
           user: result.user,
           isAuthenticated: true,
@@ -221,24 +197,9 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await socialAuthService.updateUserRole(pendingSocialUser.id, role);
+      const result = await secureAuthService.updateProfile({ role } as any);
       
       if (result.success && result.user) {
-        // Create session
-        const session = {
-          userId: result.user.id,
-          email: result.user.email,
-          role: result.user.role,
-          loginTime: new Date().toISOString()
-        };
-        
-        localStorage.setItem('invoy_session', JSON.stringify(session));
-        localStorage.setItem('invoy_current_user', JSON.stringify({
-          ...result.user,
-          createdAt: result.user.createdAt.toISOString(),
-          lastLoginAt: new Date().toISOString()
-        }));
-
         setAuthState({
           user: result.user,
           isAuthenticated: true,
