@@ -14,7 +14,7 @@ export function useAuth() {
 
   // Check for existing session on mount
   useEffect(() => {
-    const checkSession = () => {
+    const checkSession = async () => {
       try {
         if (await secureAuthService.isSessionValid()) {
           const user = await secureAuthService.getCurrentUser();
