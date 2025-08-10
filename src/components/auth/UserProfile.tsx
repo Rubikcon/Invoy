@@ -1,6 +1,9 @@
 import React from 'react';
-import { User, Mail, Calendar, Shield, Wallet, Edit2, Save, X } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Wallet, Edit2, Save, X, Settings, Globe } from 'lucide-react';
 import { User as UserType } from '../../types';
+import { useUserProfile } from '../../hooks/useUserProfile';
+import UserPreferencesModal from '../modals/UserPreferencesModal';
+import WalletManagementModal from '../modals/WalletManagementModal';
 
 interface UserProfileProps {
   isOpen: boolean;
@@ -12,11 +15,22 @@ interface UserProfileProps {
 
 export default function UserProfile({ isOpen, user, onUpdateProfile, onClose, isLoading }: UserProfileProps) {
   const [isEditing, setIsEditing] = React.useState(false);
+  const [showPreferences, setShowPreferences] = React.useState(false);
+  const [showWalletManagement, setShowWalletManagement] = React.useState(false);
   const [formData, setFormData] = React.useState({
     name: user.name,
     walletAddress: user.walletAddress || ''
   });
   const [errors, setErrors] = React.useState<{ name?: string; walletAddress?: string }>({});
+  
+  // Load extended profile data
+  const { 
+    profile, 
+    wallets, 
+    preferences, 
+    updatePreferences,
+    refreshData 
+  } = useUserProfile(user.id);
 
   const handleSave = async () => {
     const newErrors: { name?: string; walletAddress?: string } = {};
@@ -214,18 +228,59 @@ export default function UserProfile({ isOpen, user, onUpdateProfile, onClose, is
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Edit2 size={16} />
-                  <span>Edit Profile</span>
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setShowWalletManagement(true)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Wallet size={16} />
+                    <span>Wallets</span>
+                  </button>
+                  <button
+                    onClick={() => setShowPreferences(true)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Settings size={16} />
+                    <span>Settings</span>
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Edit2 size={16} />
+                    <span>Edit</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Preferences Modal */}
+      {preferences && (
+        <UserPreferencesModal
+          isOpen={showPreferences}
+          onClose={() => setShowPreferences(false)}
+          userId={user.id}
+          currentPreferences={preferences}
+          onPreferencesUpdate={(newPreferences) => {
+            updatePreferences(newPreferences);
+            refreshData();
+          }}
+        />
+      )}
+      
+      {/* Wallet Management Modal */}
+      <WalletManagementModal
+        isOpen={showWalletManagement}
+        onClose={() => setShowWalletManagement(false)}
+        userId={user.id}
+        userWallets={wallets}
+        onWalletsUpdate={(newWallets) => {
+          refreshData();
+        }}
+      />
     </div>
   );
 }

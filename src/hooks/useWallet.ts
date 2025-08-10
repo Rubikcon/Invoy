@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { WalletInfo } from '../types';
+import walletAuthService from '../services/walletAuthService';
 
 declare global {
   interface Window {
@@ -15,6 +16,7 @@ export function useWallet() {
   });
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string>('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Check if wallet is already connected on page load
   useEffect(() => {
@@ -106,6 +108,44 @@ export function useWallet() {
     }
   };
 
+  const verifyWalletOwnership = async (): Promise<{ success: boolean; message: string }> => {
+    if (!walletInfo.isConnected) {
+      return { success: false, message: 'No wallet connected' };
+    }
+
+    setIsVerifying(true);
+    try {
+      const result = await walletAuthService.authenticateWithWallet(walletInfo.address);
+      return result;
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Wallet verification failed' };
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const requestWalletSignature = async (message?: string): Promise<{ success: boolean; signature?: string; message: string }> => {
+    if (!walletInfo.isConnected) {
+      return { success: false, message: 'No wallet connected' };
+    }
+
+    try {
+      const signatureResult = await walletAuthService.requestWalletSignature(walletInfo.address);
+      
+      if (signatureResult) {
+        return { 
+          success: true, 
+          signature: signatureResult.signature,
+          message: 'Signature obtained successfully' 
+        };
+      }
+      
+      return { success: false, message: 'Failed to get wallet signature' };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Signature request failed' };
+    }
+  };
+
   const getNetworkName = (chainId: string): string => {
     const networks: { [key: string]: string } = {
       '0x1': 'Ethereum',
@@ -142,9 +182,12 @@ export function useWallet() {
   return {
     walletInfo,
     isConnecting,
+    isVerifying,
     connectionError,
     connectWallet,
     disconnectWallet,
-    formatAddress
+    formatAddress,
+    verifyWalletOwnership,
+    requestWalletSignature
   };
 }

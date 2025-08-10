@@ -43,6 +43,69 @@ export interface User {
   lastLoginAt?: Date;
   isEmailVerified: boolean;
   walletAddress?: string;
+  profile?: UserProfile;
+  preferences?: UserPreferences;
+  wallets?: UserWallet[];
+}
+
+export interface UserProfile {
+  id: string;
+  userId: string;
+  bio: string;
+  location: string;
+  website: string;
+  timezone: string;
+  profileVisibility: 'public' | 'private' | 'contacts';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserWallet {
+  id: string;
+  userId: string;
+  walletAddress: string;
+  network: string;
+  isPrimary: boolean;
+  isVerified: boolean;
+  consentGiven: boolean;
+  consentDate?: Date;
+  verificationSignature?: string;
+  verificationMessage?: string;
+  verificationDate?: Date;
+  label: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserPreferences {
+  id: string;
+  userId: string;
+  preferredNetwork: string;
+  preferredCurrency: string;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  invoiceNotifications: boolean;
+  paymentNotifications: boolean;
+  marketingEmails: boolean;
+  securityAlerts: boolean;
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  timezone: string;
+  dateFormat: string;
+  currencyDisplay: 'symbol' | 'code' | 'name';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WalletAuthChallenge {
+  id: string;
+  walletAddress: string;
+  challengeMessage: string;
+  nonce: string;
+  expiresAt: Date;
+  isUsed: boolean;
+  usedAt?: Date;
+  createdAt: Date;
 }
 
 export interface AuthState {
