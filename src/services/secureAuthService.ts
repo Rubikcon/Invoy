@@ -64,6 +64,11 @@ export const secureAuthService = {
     try {
       const response = await apiClient.getCurrentUser();
       
+      // Handle 401 (unauthorized) as expected behavior for unauthenticated users
+      if (response.status === 401) {
+        return null;
+      }
+      
       if (response.success && response.user) {
         return {
           id: response.user.id,
@@ -166,6 +171,10 @@ export const secureAuthService = {
   async isSessionValid(): Promise<boolean> {
     try {
       const response = await apiClient.getCurrentUser();
+      // 401 means unauthenticated, which is expected - not an error
+      if (response.status === 401) {
+        return false;
+      }
       return response.success;
     } catch (error) {
       return false;

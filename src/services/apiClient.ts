@@ -3,6 +3,7 @@ const API_BASE_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1';
 
 interface ApiResponse<T = any> {
   success: boolean;
+  status?: number;
   data?: T;
   user?: any;
   token?: string;
@@ -51,13 +52,23 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        return {
+          success: false,
+          status: response.status,
+          error: data.error || `HTTP error! status: ${response.status}`
+        };
       }
 
-      return data;
+      return {
+        ...data,
+        status: response.status
+      };
     } catch (error) {
       console.error('API request failed:', error);
-      throw error;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error occurred'
+      };
     }
   }
 
