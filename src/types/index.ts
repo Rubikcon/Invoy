@@ -25,6 +25,7 @@ export interface CreateInvoiceData {
   description: string;
   amount: string;
   employerEmail: string;
+  descriptionHtml?: string;
 }
 
 export interface WalletInfo {

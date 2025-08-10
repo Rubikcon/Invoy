@@ -12,12 +12,16 @@
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@supabase/supabase-js": "^2.52.1",
+    "@uiw/react-md-editor": "^4.0.8",
     "bcryptjs": "^3.0.2",
+    "crypto-js": "^4.2.0",
     "emailjs-com": "^3.2.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.5.2",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.7.0"
   },
   "devDependencies": {

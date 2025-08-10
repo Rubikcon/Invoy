@@ -1,11 +1,14 @@
 import React from 'react';
-import { X, Wallet, Globe, AlertCircle, Coins } from 'lucide-react';
+import { X, Wallet, Globe, AlertCircle, Coins, Save, Send, Eye, EyeOff } from 'lucide-react';
 import { CreateInvoiceData } from '../../types';
+import MDEditor from '@uiw/react-md-editor';
+import { useToast } from '../../hooks/useToast';
+import { invoiceService } from '../../services/invoiceService';
 
 interface CreateInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateInvoiceData) => void;
+  onSubmit: (data: CreateInvoiceData, isDraft?: boolean) => void;
   walletAddress: string;
   currentNetwork: string;
 }
@@ -17,6 +20,7 @@ export default function CreateInvoiceModal({
   walletAddress, 
   currentNetwork 
 }: CreateInvoiceModalProps) {
+  const { success, error, warning } = useToast();
   const [formData, setFormData] = React.useState<CreateInvoiceData>({
     fullName: '',
     email: '',
@@ -30,6 +34,10 @@ export default function CreateInvoiceModal({
   });
   
   const [errors, setErrors] = React.useState<Partial<CreateInvoiceData>>({});
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSavingDraft, setIsSavingDraft] = React.useState(false);
+  const [showPreview, setShowPreview] = React.useState(false);
+  const [networkWarning, setNetworkWarning] = React.useState<string>('');
 
   React.useEffect(() => {
     if (isOpen) {
@@ -39,8 +47,22 @@ export default function CreateInvoiceModal({
         network: currentNetwork,
         token: 'ETH'
       }));
+      setNetworkWarning('');
+      setShowPreview(false);
     }
   }, [isOpen, walletAddress, currentNetwork]);
+
+  // Check network compatibility
+  React.useEffect(() => {
+    if (formData.network && currentNetwork) {
+      const validation = invoiceService.validateNetworkCompatibility(formData.network, currentNetwork);
+      if (!validation.isCompatible && validation.warning) {
+        setNetworkWarning(validation.warning);
+      } else {
+        setNetworkWarning('');
+      }
+    }
+  }, [formData.network, currentNetwork]);
 
   const networks = [
     'Ethereum',
@@ -58,10 +80,8 @@ export default function CreateInvoiceModal({
     'MATIC',
     'ARB'
   ];
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Basic validation
+
+  const validateForm = (): boolean => {
     const newErrors: Partial<CreateInvoiceData> = {};
     
     if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
@@ -74,25 +94,67 @@ export default function CreateInvoiceModal({
     if (!formData.employerEmail.trim()) newErrors.employerEmail = 'Employer email is required';
     if (!formData.employerEmail.includes('@')) newErrors.employerEmail = 'Please enter a valid email';
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      newErrors.amount = 'Amount must be a positive number';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSaveDraft = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    setIsSavingDraft(true);
+    try {
+      const result = await invoiceService.saveDraft(formData);
+      
+      if (result.success) {
+        success('Draft Saved', 'Invoice draft saved successfully');
+        onSubmit(formData, true);
+        onClose();
+      } else {
+        error('Save Failed', result.message);
+      }
+    } catch (err: any) {
+      error('Save Failed', err.message || 'Failed to save draft');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
 
-    onSubmit(formData);
-    onClose();
-    setFormData({
-      fullName: '',
-      email: '',
-      walletAddress: walletAddress,
-      network: currentNetwork,
-      token: 'ETH',
-      role: '',
-      description: '',
-      amount: '',
-      employerEmail: ''
-    });
-    setErrors({});
+    // Show warning if network mismatch
+    if (networkWarning) {
+      const proceed = window.confirm(
+        `${networkWarning}\n\nDo you want to proceed anyway? This may cause payment issues.`
+      );
+      if (!proceed) return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await invoiceService.submitInvoice(formData);
+      
+      if (result.success) {
+        success('Invoice Sent', 'Invoice submitted successfully and ready to send to employer');
+        onSubmit(formData, false);
+        onClose();
+      } else {
+        error('Submission Failed', result.message);
+      }
+    } catch (err: any) {
+      error('Submission Failed', err.message || 'Failed to submit invoice');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (field: keyof CreateInvoiceData) => (
@@ -107,22 +169,44 @@ export default function CreateInvoiceModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto p-4" data-color-mode="light">
       <div className="flex min-h-screen items-center justify-center">
         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose}></div>
         
-        <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl p-4 md:p-8 max-h-[90vh] overflow-y-auto transition-colors duration-300">
+        <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl p-4 md:p-8 max-h-[90vh] overflow-y-auto transition-colors duration-300">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Create Invoice</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
-            >
-              <X size={24} />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200 flex items-center space-x-1"
+              >
+                {showPreview ? <EyeOff size={20} /> : <Eye size={20} />}
+                <span className="text-sm hidden sm:inline">{showPreview ? 'Edit' : 'Preview'}</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+              >
+                <X size={24} />
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Network Warning */}
+          {networkWarning && (
+            <div className="mb-6 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle size={20} className="text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-orange-800 dark:text-orange-200 mb-1">Network Mismatch Warning</h4>
+                  <p className="text-orange-700 dark:text-orange-300 text-sm">{networkWarning}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-6">
             {/* Personal Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Personal Information</h3>
@@ -248,17 +332,37 @@ export default function CreateInvoiceModal({
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description of Work *
+                  Work Description *
                 </label>
-                <textarea
-                  rows={4}
-                  value={formData.description}
-                  onChange={handleChange('description')}
-                  className={`w-full px-4 py-3 rounded-lg border ${
-                    errors.description ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
-                  } bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none`}
-                  placeholder="Describe the work you completed..."
-                />
+                {showPreview ? (
+                  <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 min-h-[120px]">
+                    <div 
+                      className="prose prose-sm max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ 
+                        __html: formData.description
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                          .replace(/`(.*?)`/g, '<code>$1</code>')
+                          .replace(/\n/g, '<br>')
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                    <MDEditor
+                      value={formData.description}
+                      onChange={(value) => setFormData(prev => ({ ...prev, description: value || '' }))}
+                      preview="edit"
+                      hideToolbar={false}
+                      height={200}
+                      data-color-mode="light"
+                      className="!border-0"
+                    />
+                  </div>
+                )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Supports Markdown: **bold**, *italic*, `code`, lists, and links
+                </p>
                 {errors.description && (
                   <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
                     <AlertCircle size={14} />
@@ -335,23 +439,53 @@ export default function CreateInvoiceModal({
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Action Buttons */}
             <div className="flex flex-col md:flex-row justify-end space-y-3 md:space-y-0 md:space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={onClose}
+                disabled={isSubmitting || isSavingDraft}
                 className="w-full md:w-auto px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
               >
                 Cancel
               </button>
               <button
-                type="submit"
-                className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200"
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={isSubmitting || isSavingDraft}
+                className="w-full md:w-auto px-6 py-3 border border-blue-600 text-blue-600 dark:text-blue-400 rounded-lg font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 disabled:opacity-50 flex items-center justify-center space-x-2"
               >
-                Send Invoice
+                {isSavingDraft ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    <span>Save Draft</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || isSavingDraft}
+                className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200 disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    <span>Send Invoice</span>
+                  </>
+                )}
               </button>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>

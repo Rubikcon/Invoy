@@ -218,6 +218,11 @@ class ApiClient {
 
     return { isValid, expiresIn, user };
   }
+
+  // Generic request method for other services
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<any> {
+    return this.request(endpoint, options);
+  }
 }
 
 export const apiClient = new ApiClient();

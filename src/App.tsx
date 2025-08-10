@@ -1,8 +1,11 @@
 import React from 'react';
 import { Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { View, WalletInfo, Invoice, CreateInvoiceData, User } from './types';
-import { invoiceStorage, StoredInvoice } from './services/invoiceStorage';
+import { invoiceService } from './services/invoiceService';
 import { notificationService } from './services/notificationService';
+import { useToast } from './hooks/useToast';
+import ToastContainer from './components/ui/ToastContainer';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useAuth } from './hooks/useAuth';
 import { useWallet } from './hooks/useWallet';
@@ -28,33 +31,33 @@ import { sendInvoiceEmail, copyInvoiceDetails } from './services/emailService';
 import { sendStatusUpdateEmail } from './services/emailService';
 
 // Component to handle employer invoice routes
+// Component to handle employer invoice routes
 function EmployerInvoiceRoute() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
   const [invoice, setInvoice] = React.useState<Invoice | null>(null);
   const [loading, setLoading] = React.useState(true);
   
-  // Load invoice from storage
+  // Load invoice from backend
   React.useEffect(() => {
-    if (invoiceId) {
-      const storedInvoice = invoiceStorage.getById(invoiceId);
-      if (storedInvoice) {
-        // Convert stored invoice to Invoice type
-        const convertedInvoice: Invoice = {
-          ...storedInvoice,
-          createdAt: new Date(storedInvoice.createdAt)
-        };
-        setInvoice(convertedInvoice);
+    const loadInvoice = async () => {
+      if (invoiceId) {
+        const result = await invoiceService.getInvoiceById(invoiceId);
+        if (result.success && result.invoice) {
+          setInvoice(result.invoice);
+        }
       }
       setLoading(false);
-    }
+    };
+    
+    loadInvoice();
   }, [invoiceId]);
   
   const handleApprove = async (invoice: Invoice) => {
     if (!invoice) return;
     
-    // Update invoice status in storage
-    invoiceStorage.updateStatus(invoice.id, 'Approved');
+    // Update invoice status via backend
+    await invoiceService.updateInvoiceStatus(invoice.id, 'Approved');
     
     // Update local state to show success
     setInvoice(prev => prev ? { ...prev, status: 'Approved' } : null);
@@ -63,8 +66,8 @@ function EmployerInvoiceRoute() {
   const handleReject = async (invoice: Invoice, reason: string) => {
     if (!invoice) return;
     
-    // Update invoice status in storage
-    invoiceStorage.updateStatus(invoice.id, 'Rejected', reason);
+    // Update invoice status via backend
+    await invoiceService.updateInvoiceStatus(invoice.id, 'Rejected', reason);
     
     // Update local state to show rejection
     setInvoice(prev => prev ? { ...prev, status: 'Rejected' } : null);
@@ -110,6 +113,7 @@ function EmployerInvoiceRoute() {
 
 function App() {
   const location = useLocation();
+  const { success, error, warning } = useToast();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { 
     user, 
@@ -138,21 +142,30 @@ function App() {
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
 
-  // Load invoices from storage on component mount
+  // Load invoices from backend on component mount
   React.useEffect(() => {
+    const loadInvoices = async () => {
+      if (isAuthenticated && user && user.role === 'freelancer') {
+        const result = await invoiceService.getUserInvoices();
+        if (result.success && result.invoices) {
+          setInvoices(result.invoices);
+        } else if (result.error) {
+          error('Load Failed', result.error);
+        }
+      }
+    };
+    
+    loadInvoices();
+  }, [isAuthenticated, user, error]);
+
+  const refreshInvoices = async () => {
     if (isAuthenticated && user && user.role === 'freelancer') {
-      // Use user's wallet address if available, otherwise use a user-specific key
-      const userKey = user.walletAddress || user.id;
-      const storedInvoices = invoiceStorage.getByWalletAddress(userKey);
-      const convertedInvoices: Invoice[] = storedInvoices.map(stored => ({
-        ...stored,
-        createdAt: new Date(stored.createdAt),
-        sentDate: stored.sentDate ? new Date(stored.sentDate) : undefined,
-        paidDate: stored.paidDate ? new Date(stored.paidDate) : undefined
-      }));
-      setInvoices(convertedInvoices);
+      const result = await invoiceService.getUserInvoices();
+      if (result.success && result.invoices) {
+        setInvoices(result.invoices);
+      }
     }
-  }, [isAuthenticated, user]);
+  };
 
   // Check if we're on an invoice route
   const isInvoiceRoute = location.pathname.startsWith('/invoice/');
@@ -225,63 +238,28 @@ function App() {
     }
   }, [walletInfo.isConnected, walletInfo.address, user, updateProfile]);
 
-  const handleSubmitInvoice = (data: CreateInvoiceData) => {
+  const handleSubmitInvoice = async (data: CreateInvoiceData, isDraft: boolean = false) => {
     if (!user) return;
     
-    // Generate a more unique invoice ID
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const newInvoice: Invoice = {
-      id: `INV-${timestamp}-${randomSuffix}`,
-      employerEmail: data.employerEmail,
-      amount: data.amount,
-      status: 'Pending',
-      freelancerName: data.fullName,
-      freelancerEmail: data.email,
-      walletAddress: data.walletAddress,
-      network: data.network,
-      token: data.token || 'ETH',
-      role: data.role,
-      description: data.description,
-      createdAt: new Date(),
-      sentDate: new Date(),
-      paidDate: undefined
-    };
+    // Refresh invoices list
+    await refreshInvoices();
     
-    // Save to storage
-    const storedInvoice: StoredInvoice = {
-      ...newInvoice,
-      createdAt: newInvoice.createdAt.toISOString(),
-      sentDate: newInvoice.sentDate?.toISOString(),
-      paidDate: newInvoice.paidDate?.toISOString()
-    };
-    invoiceStorage.save(storedInvoice);
-    
-    // Create notification for employer (using a generic employer ID)
-    const employerId = 'employer_' + data.employerEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    notificationService.createNewInvoiceNotification(
-      newInvoice.id,
-      employerId,
-      data.fullName,
-      data.amount
-    );
-    
-    setInvoices(prev => [newInvoice, ...prev]);
-    
-    // Prepare email data and show email setup modal
-    const emailData = {
-      employerEmail: data.employerEmail,
-      freelancerName: data.fullName,
-      freelancerEmail: data.email,
-      invoiceId: newInvoice.id,
-      amount: data.amount,
-      network: data.network,
-      description: data.description,
-      invoiceLink: `${window.location.origin}/invoice/${newInvoice.id}`
-    };
-    
-    setPendingEmailData(emailData);
-    setIsEmailSetupModalOpen(true);
+    if (!isDraft) {
+      // For submitted invoices, show email setup modal
+      const emailData = {
+        employerEmail: data.employerEmail,
+        freelancerName: data.fullName,
+        freelancerEmail: data.email,
+        invoiceId: 'pending', // Will be updated with actual ID
+        amount: data.amount,
+        network: data.network,
+        description: data.description,
+        invoiceLink: `${window.location.origin}/invoice/pending`
+      };
+      
+      setPendingEmailData(emailData);
+      setIsEmailSetupModalOpen(true);
+    }
   };
 
   const handleSendEmail = async () => {
@@ -291,11 +269,9 @@ function App() {
       setPendingEmailData(null);
       
       if (result.success) {
-        setEmailStatus(`✅ ${result.message}`);
-        setTimeout(() => setEmailStatus(''), 5000);
+        success('Email Sent', result.message);
       } else {
-        setEmailStatus(`❌ ${result.message}`);
-        setTimeout(() => setEmailStatus(''), 5000);
+        error('Email Failed', result.message);
       }
     }
   };
@@ -307,11 +283,9 @@ function App() {
       setPendingEmailData(null);
       
       if (result.success) {
-        setEmailStatus(`✅ ${result.message}`);
-        setTimeout(() => setEmailStatus(''), 5000);
+        success('Copied to Clipboard', result.message);
       } else {
-        setEmailStatus(`❌ ${result.message}`);
-        setTimeout(() => setEmailStatus(''), 5000);
+        error('Copy Failed', result.message);
       }
     }
   };
@@ -363,10 +337,8 @@ function App() {
             onDeleteInvoice={(invoiceId) => {
               // Remove from state
               setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
-              // Remove from storage
-              if (user?.walletAddress || user?.id) {
-                invoiceStorage.delete(invoiceId, user.walletAddress || user.id);
-              }
+              // Delete via backend
+              invoiceService.deleteInvoice(invoiceId);
             }}
           />
         );
@@ -443,12 +415,15 @@ function App() {
 
           {renderCurrentView()}
 
-          {/* Email Status Message */}
-          {emailStatus && (
-            <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 max-w-sm z-50">
-              <p className="text-sm text-gray-900 dark:text-white">{emailStatus}</p>
-            </div>
-          )}
+          {/* Toast Notifications */}
+          <ToastContainer />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              className: 'dark:bg-gray-800 dark:text-white',
+            }}
+          />
 
           {currentView === 'landing' && <Footer />}
 
