@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, AuthState, LoginCredentials, RegisterData } from '../types';
-import { secureAuthService } from '../services/secureAuthService';
-import sessionManager from '../services/sessionManager';
+import { authService } from '../services/authService';
+import { socialAuthService } from '../services/socialAuthService';
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -17,31 +17,17 @@ export function useAuth() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const sessionInfo = secureAuthService.getSessionInfo();
+        const user = authService.getCurrentUser();
+        const isValid = authService.isSessionValid();
         
-        if (sessionInfo.isAuthenticated && sessionInfo.user) {
+        if (user && isValid) {
           setAuthState({
-            user: sessionInfo.user,
+            user,
             isAuthenticated: true,
             isLoading: false,
             error: null
           });
         } else {
-          // Try to validate session with backend
-          const isValid = await secureAuthService.isSessionValid();
-          if (isValid) {
-            const user = await secureAuthService.getCurrentUser();
-            if (user) {
-              setAuthState({
-                user,
-                isAuthenticated: true,
-                isLoading: false,
-                error: null
-              });
-              return;
-            }
-          }
-          
           // No valid session
           setAuthState({
             user: null,
@@ -66,9 +52,10 @@ export function useAuth() {
   // Listen for session changes
   useEffect(() => {
     const handleSessionChange = () => {
-      const sessionInfo = secureAuthService.getSessionInfo();
+      const user = authService.getCurrentUser();
+      const isValid = authService.isSessionValid();
       
-      if (!sessionInfo.isAuthenticated) {
+      if (!user || !isValid) {
         setAuthState({
           user: null,
           isAuthenticated: false,
@@ -90,7 +77,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await secureAuthService.login(credentials);
+      const result = await authService.login(credentials);
       
       if (result.success && result.user) {
         setAuthState({
@@ -122,7 +109,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await secureAuthService.register(data);
+      const result = await authService.register(data);
       
       if (result.success && result.user) {
         setAuthState({
@@ -151,7 +138,7 @@ export function useAuth() {
   };
 
   const logout = () => {
-    secureAuthService.logout(); // This will also clear the session
+    authService.logout();
     setAuthState({
       user: null,
       isAuthenticated: false,
@@ -166,7 +153,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await secureAuthService.updateProfile(updates);
+      const result = await authService.updateProfile(authState.user!.id, updates);
       
       if (result.success && result.user) {
         setAuthState(prev => ({
@@ -198,11 +185,17 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // For demo purposes, simulate OAuth flow
-      const mockCode = 'mock_oauth_code_' + Date.now();
-      const result = await secureAuthService.socialLogin(provider, mockCode);
+      const result = await socialAuthService.signInWithGoogle();
       
       if (result.success && result.user) {
+        // For social auth users, we might need role selection
+        if (!result.user.role || result.user.role === 'freelancer') {
+          setPendingSocialUser(result.user);
+          setShowRoleSelection(true);
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+          return true;
+        }
+        
         setAuthState({
           user: result.user,
           isAuthenticated: true,
@@ -234,7 +227,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await secureAuthService.updateProfile({ role } as any);
+      const result = await socialAuthService.updateUserRole(pendingSocialUser!.id, role);
       
       if (result.success && result.user) {
         setAuthState({
