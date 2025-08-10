@@ -1,11 +1,13 @@
 import React from 'react';
 import { X, Mail, Lock, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 import { LoginCredentials } from '../../types';
+import SocialAuthButtons from './SocialAuthButtons';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLogin: (credentials: LoginCredentials) => Promise<boolean>;
+  onSocialLogin: (provider: 'google' | 'github') => Promise<boolean>;
   onSwitchToRegister: () => void;
   isLoading: boolean;
   error: string | null;
@@ -15,6 +17,7 @@ export default function LoginModal({
   isOpen, 
   onClose, 
   onLogin, 
+  onSocialLogin,
   onSwitchToRegister, 
   isLoading, 
   error 
@@ -170,6 +173,14 @@ export default function LoginModal({
               )}
             </button>
           </form>
+
+          {/* Social Auth Buttons */}
+          <SocialAuthButtons
+            onGoogleAuth={() => onSocialLogin('google')}
+            onGitHubAuth={() => onSocialLogin('github')}
+            isLoading={isLoading}
+            mode="login"
+          />
 
           {/* Switch to Register */}
           <div className="mt-6 text-center">

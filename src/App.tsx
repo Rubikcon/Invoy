@@ -22,6 +22,7 @@ import FreelancerInvoiceView from './components/pages/FreelancerInvoiceView';
 import EmailSetupModal from './components/modals/EmailSetupModal';
 import LoginModal from './components/auth/LoginModal';
 import RegisterModal from './components/auth/RegisterModal';
+import RoleSelectionModal from './components/auth/RoleSelectionModal';
 import UserProfile from './components/auth/UserProfile';
 import { sendInvoiceEmail, copyInvoiceDetails } from './services/emailService';
 import { sendStatusUpdateEmail } from './services/emailService';
@@ -110,7 +111,21 @@ function EmployerInvoiceRoute() {
 function App() {
   const location = useLocation();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { user, isAuthenticated, isLoading: authLoading, error: authError, login, register, logout, updateProfile, clearError } = useAuth();
+  const { 
+    user, 
+    isAuthenticated, 
+    isLoading: authLoading, 
+    error: authError, 
+    pendingSocialUser,
+    showRoleSelection,
+    login, 
+    register, 
+    socialLogin,
+    updateUserRole,
+    logout, 
+    updateProfile, 
+    clearError 
+  } = useAuth();
   const { walletInfo, isConnecting, connectionError, connectWallet, disconnectWallet } = useWallet();
   const [currentView, setCurrentView] = React.useState<View>('landing');
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
@@ -452,6 +467,7 @@ function App() {
               clearError();
             }}
             onLogin={login}
+            onSocialLogin={socialLogin}
             onSwitchToRegister={handleSwitchToRegister}
             isLoading={authLoading}
             error={authError}
@@ -464,9 +480,18 @@ function App() {
               clearError();
             }}
             onRegister={register}
+            onSocialLogin={socialLogin}
             onSwitchToLogin={handleSwitchToLogin}
             isLoading={authLoading}
             error={authError}
+          />
+
+          <RoleSelectionModal
+            isOpen={showRoleSelection}
+            onClose={() => clearError()}
+            onSelectRole={updateUserRole}
+            userName={pendingSocialUser?.name || ''}
+            isLoading={authLoading}
           />
 
           {user && (
