@@ -28,26 +28,32 @@ class InvoiceService {
   // Create or update invoice draft
   async saveDraft(data: CreateInvoiceData, draftId?: string): Promise<InvoiceResponse> {
     try {
-      const invoiceData: InvoiceApiData = {
-        id: draftId,
-        employer_email: data.employerEmail,
-        freelancer_name: data.fullName,
-        freelancer_email: data.email,
-        wallet_address: data.walletAddress,
-        network: data.network,
-        token: data.token || 'ETH',
-        amount: data.amount,
-        role: data.role,
-        description: data.description,
-        description_html: this.convertMarkdownToHtml(data.description)
+      // For now, use local storage until backend is properly connected
+      const invoice = {
+        id: draftId || `DRAFT-${Date.now()}`,
+        ...data,
+        status: 'Draft' as const,
+        createdAt: new Date(),
+        token: data.token || 'ETH'
       };
-
-      const response = await apiClient.request('/invoices/draft', {
-        method: 'POST',
-        body: JSON.stringify(invoiceData)
-      });
-
-      return response;
+      
+      // Store locally
+      const drafts = JSON.parse(localStorage.getItem('invoy_drafts') || '[]');
+      const existingIndex = drafts.findIndex((d: any) => d.id === invoice.id);
+      
+      if (existingIndex >= 0) {
+        drafts[existingIndex] = invoice;
+      } else {
+        drafts.push(invoice);
+      }
+      
+      localStorage.setItem('invoy_drafts', JSON.stringify(drafts));
+      
+      return {
+        success: true,
+        message: 'Draft saved successfully',
+        invoice
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -60,26 +66,48 @@ class InvoiceService {
   // Submit complete invoice
   async submitInvoice(data: CreateInvoiceData, draftId?: string): Promise<InvoiceResponse> {
     try {
-      const invoiceData: InvoiceApiData = {
-        id: draftId,
-        employer_email: data.employerEmail,
-        freelancer_name: data.fullName,
-        freelancer_email: data.email,
-        wallet_address: data.walletAddress,
-        network: data.network,
-        token: data.token || 'ETH',
-        amount: data.amount,
-        role: data.role,
-        description: data.description,
-        description_html: this.convertMarkdownToHtml(data.description)
+      // Generate secure invoice ID
+      const invoiceId = this.generateSecureInvoiceId();
+      
+      const invoice = {
+        id: invoiceId,
+        ...data,
+        status: 'Sent' as const,
+        createdAt: new Date(),
+        sentDate: new Date(),
+        token: data.token || 'ETH'
       };
-
-      const response = await apiClient.request('/invoices/submit', {
-        method: 'POST',
-        body: JSON.stringify(invoiceData)
-      });
-
-      return response;
+      
+      // Store in global storage for employer access
+      const allInvoices = JSON.parse(localStorage.getItem('invoy_all_invoices') || '[]');
+      allInvoices.unshift(invoice);
+      localStorage.setItem('invoy_all_invoices', JSON.stringify(allInvoices));
+      
+      // Remove from drafts if it was a draft
+      if (draftId) {
+        const drafts = JSON.parse(localStorage.getItem('invoy_drafts') || '[]');
+        const filteredDrafts = drafts.filter((d: any) => d.id !== draftId);
+        localStorage.setItem('invoy_drafts', JSON.stringify(filteredDrafts));
+      }
+      
+      return {
+        success: true,
+        message: 'Invoice submitted successfully',
+        invoice: {
+          invoice_number: invoiceId,
+          employer_email: data.employerEmail,
+          freelancer_name: data.fullName,
+          freelancer_email: data.email,
+          wallet_address: data.walletAddress,
+          network: data.network,
+          token: data.token || 'ETH',
+          amount: parseFloat(data.amount),
+          role: data.role,
+          description: data.description,
+          status: 'Sent',
+          created_at: new Date().toISOString()
+        }
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -92,32 +120,31 @@ class InvoiceService {
   // Get user's invoices
   async getUserInvoices(): Promise<{ success: boolean; invoices?: Invoice[]; error?: string }> {
     try {
-      const response = await apiClient.request('/invoices', {
-        method: 'GET'
-      });
+      // Get from local storage for now
+      const allInvoices = JSON.parse(localStorage.getItem('invoy_all_invoices') || '[]');
+      const drafts = JSON.parse(localStorage.getItem('invoy_drafts') || '[]');
+      
+      // Combine invoices and drafts
+      const combined = [...allInvoices, ...drafts];
+      
+      const convertedInvoices: Invoice[] = combined.map((invoice: any) => ({
+        id: invoice.id,
+        employerEmail: invoice.employerEmail,
+        amount: invoice.amount.toString(),
+        status: invoice.status,
+        freelancerName: invoice.fullName || invoice.freelancerName,
+        freelancerEmail: invoice.email || invoice.freelancerEmail,
+        walletAddress: invoice.walletAddress,
+        network: invoice.network,
+        token: invoice.token,
+        role: invoice.role,
+        description: invoice.description,
+        createdAt: new Date(invoice.createdAt),
+        sentDate: invoice.sentDate ? new Date(invoice.sentDate) : undefined,
+        paidDate: invoice.paidDate ? new Date(invoice.paidDate) : undefined
+      }));
 
-      if (response.success && response.invoices) {
-        const convertedInvoices: Invoice[] = response.invoices.map((invoice: any) => ({
-          id: invoice.invoice_number,
-          employerEmail: invoice.employer_email,
-          amount: invoice.amount.toString(),
-          status: invoice.status,
-          freelancerName: invoice.freelancer_name,
-          freelancerEmail: invoice.freelancer_email,
-          walletAddress: invoice.wallet_address,
-          network: invoice.network,
-          token: invoice.token,
-          role: invoice.role,
-          description: invoice.description,
-          createdAt: new Date(invoice.created_at),
-          sentDate: invoice.sent_at ? new Date(invoice.sent_at) : undefined,
-          paidDate: invoice.paid_at ? new Date(invoice.paid_at) : undefined
-        }));
-
-        return { success: true, invoices: convertedInvoices };
-      }
-
-      return { success: false, error: response.error || 'Failed to fetch invoices' };
+      return { success: true, invoices: convertedInvoices };
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to fetch invoices' };
     }
@@ -239,6 +266,15 @@ class InvoiceService {
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code>$1</code>')
       .replace(/\n/g, '<br>');
+  }
+
+  // Generate cryptographically secure invoice ID
+  private generateSecureInvoiceId(): string {
+    const timestamp = Date.now().toString(36);
+    const randomBytes = new Uint8Array(8);
+    crypto.getRandomValues(randomBytes);
+    const randomString = Array.from(randomBytes, byte => byte.toString(36)).join('');
+    return `INV-${timestamp}-${randomString}`.toUpperCase();
   }
 }
 

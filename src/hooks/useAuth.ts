@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, AuthState, LoginCredentials, RegisterData } from '../types';
-import { authService } from '../services/authService';
+import { secureAuthService } from '../services/secureAuthService';
 import { socialAuthService } from '../services/socialAuthService';
 
 export function useAuth() {
@@ -17,8 +17,8 @@ export function useAuth() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const user = authService.getCurrentUser();
-        const isValid = authService.isSessionValid();
+        const user = await secureAuthService.getCurrentUser();
+        const isValid = await secureAuthService.isSessionValid();
         
         if (user && isValid) {
           setAuthState({
@@ -52,10 +52,9 @@ export function useAuth() {
   // Listen for session changes
   useEffect(() => {
     const handleSessionChange = () => {
-      const user = authService.getCurrentUser();
-      const isValid = authService.isSessionValid();
+      const sessionInfo = secureAuthService.getSessionInfo();
       
-      if (!user || !isValid) {
+      if (!sessionInfo.isAuthenticated) {
         setAuthState({
           user: null,
           isAuthenticated: false,
@@ -77,7 +76,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await authService.login(credentials);
+      const result = await secureAuthService.login(credentials);
       
       if (result.success && result.user) {
         setAuthState({
@@ -109,7 +108,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await authService.register(data);
+      const result = await secureAuthService.register(data);
       
       if (result.success && result.user) {
         setAuthState({
@@ -138,7 +137,7 @@ export function useAuth() {
   };
 
   const logout = () => {
-    authService.logout();
+    secureAuthService.logout();
     setAuthState({
       user: null,
       isAuthenticated: false,
@@ -153,7 +152,7 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await authService.updateProfile(authState.user!.id, updates);
+      const result = await secureAuthService.updateProfile(updates);
       
       if (result.success && result.user) {
         setAuthState(prev => ({
