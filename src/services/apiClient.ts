@@ -40,7 +40,7 @@ class ApiClient {
     this.isRefreshing = false;
   }
 
-  private async request<T>(
+  private async _makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
@@ -73,7 +73,7 @@ class ApiClient {
         const refreshed = await this.handleTokenRefresh();
         if (refreshed) {
           // Retry the original request with new token
-          return this.request(endpoint, options);
+          return this._makeRequest(endpoint, options);
         }
       }
 
@@ -127,7 +127,7 @@ class ApiClient {
     password: string;
     role: 'freelancer' | 'employer';
   }): Promise<ApiResponse> {
-    const response = await this.request('/auth/register', {
+    const response = await this._makeRequest('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -139,7 +139,7 @@ class ApiClient {
     email: string;
     password: string;
   }): Promise<ApiResponse> {
-    const response = await this.request('/auth/login', {
+    const response = await this._makeRequest('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
@@ -148,7 +148,7 @@ class ApiClient {
   }
 
   async logout(): Promise<ApiResponse> {
-    const response = await this.request('/auth/logout', {
+    const response = await this._makeRequest('/auth/logout', {
       method: 'POST',
     });
 
@@ -156,7 +156,7 @@ class ApiClient {
   }
 
   async getCurrentUser(): Promise<ApiResponse> {
-    return this.request('/auth/me', {
+    return this._makeRequest('/auth/me', {
       method: 'GET',
     });
   }
@@ -166,7 +166,7 @@ class ApiClient {
     avatar?: string;
     wallet_address?: string;
   }): Promise<ApiResponse> {
-    return this.request('/auth/profile', {
+    return this._makeRequest('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
@@ -178,7 +178,7 @@ class ApiClient {
       return { success: false, error: 'No refresh token available' };
     }
 
-    const response = await this.request('/auth/refresh', {
+    const response = await this._makeRequest('/auth/refresh', {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
     });
@@ -188,7 +188,7 @@ class ApiClient {
 
   // OAuth endpoints
   async googleOAuth(code: string, redirectUri: string, role?: string): Promise<ApiResponse> {
-    const response = await this.request('/oauth/google/callback', {
+    const response = await this._makeRequest('/oauth/google/callback', {
       method: 'POST',
       body: JSON.stringify({ code, redirect_uri: redirectUri, role }),
     });
@@ -197,7 +197,7 @@ class ApiClient {
   }
 
   async githubOAuth(code: string, role?: string): Promise<ApiResponse> {
-    const response = await this.request('/oauth/github/callback', {
+    const response = await this._makeRequest('/oauth/github/callback', {
       method: 'POST',
       body: JSON.stringify({ code, role }),
     });
@@ -221,7 +221,7 @@ class ApiClient {
 
   // Generic request method for other services
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<any> {
-    return this.request(endpoint, options);
+    return this._makeRequest(endpoint, options);
   }
 }
 
