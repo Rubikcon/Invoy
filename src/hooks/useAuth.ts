@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, AuthState, LoginCredentials, RegisterData } from '../types';
 import { secureAuthService } from '../services/secureAuthService';
-import { socialAuthService } from '../services/socialAuthService';
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -17,12 +16,11 @@ export function useAuth() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const user = await secureAuthService.getCurrentUser();
-        const isValid = await secureAuthService.isSessionValid();
+        const result = await secureAuthService.getCurrentUser();
         
-        if (user && isValid) {
+        if (result.success && result.user) {
           setAuthState({
-            user,
+            user: result.user,
             isAuthenticated: true,
             isLoading: false,
             error: null
@@ -47,14 +45,17 @@ export function useAuth() {
     };
 
     checkSession();
-  }, []);
 
-  // Listen for session changes
-  useEffect(() => {
-    const handleSessionChange = () => {
-      const sessionInfo = secureAuthService.getSessionInfo();
-      
-      if (!sessionInfo.isAuthenticated) {
+    // Listen to auth state changes
+    const { data: { subscription } } = secureAuthService.onAuthStateChange((user) => {
+      if (user) {
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null
+        });
+      } else {
         setAuthState({
           user: null,
           isAuthenticated: false,
@@ -62,15 +63,14 @@ export function useAuth() {
           error: null
         });
       }
-    };
+    });
 
-    // Listen for storage changes (multi-tab sync)
-    window.addEventListener('storage', handleSessionChange);
-    
     return () => {
-      window.removeEventListener('storage', handleSessionChange);
+      subscription.unsubscribe();
     };
   }, []);
+
+
 
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -90,7 +90,7 @@ export function useAuth() {
         setAuthState(prev => ({
           ...prev,
           isLoading: false,
-          error: result.message
+          error: result.message ? result.message : null
         }));
         return false;
       }
@@ -123,7 +123,7 @@ export function useAuth() {
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: result.message
+        error: result.message ? result.message : null
       }));
       return false;
     } catch (error) {
@@ -136,8 +136,8 @@ export function useAuth() {
     }
   };
 
-  const logout = () => {
-    secureAuthService.logout();
+  const logout = async () => {
+    await secureAuthService.logout();
     setAuthState({
       user: null,
       isAuthenticated: false,
@@ -152,24 +152,17 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await secureAuthService.updateProfile(updates);
+      // For now, just update local state since Supabase profile updates
+      // would require additional setup with user_metadata or profiles table
+      const updatedUser = { ...authState.user, ...updates };
       
-      if (result.success && result.user) {
-        setAuthState(prev => ({
-          ...prev,
-          user: result.user,
-          isLoading: false,
-          error: null
-        }));
-        return true;
-      } else {
-        setAuthState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: result.message
-        }));
-        return false;
-      }
+      setAuthState(prev => ({
+        ...prev,
+        user: updatedUser,
+        isLoading: false,
+        error: null
+      }));
+      return true;
     } catch (error) {
       setAuthState(prev => ({
         ...prev,
@@ -184,29 +177,22 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await socialAuthService.signInWithGoogle();
+      let result;
+      if (provider === 'google') {
+        result = await secureAuthService.loginWithGoogle();
+      } else {
+        result = await secureAuthService.loginWithGitHub();
+      }
       
-      if (result.success && result.user) {
-        // For social auth users, we might need role selection
-        if (!result.user.role || result.user.role === 'freelancer') {
-          setPendingSocialUser(result.user);
-          setShowRoleSelection(true);
-          setAuthState(prev => ({ ...prev, isLoading: false }));
-          return true;
-        }
-        
-        setAuthState({
-          user: result.user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
+      if (result.success) {
+        // OAuth will redirect, so we just need to handle the success case
+        setAuthState(prev => ({ ...prev, isLoading: false, error: null }));
         return true;
       } else {
         setAuthState(prev => ({
           ...prev,
           isLoading: false,
-          error: result.message
+          error: result.message ? result.message : null
         }));
         return false;
       }
@@ -226,27 +212,19 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const result = await socialAuthService.updateUserRole(pendingSocialUser!.id, role);
+      // For now, just update the local state with the selected role
+      const updatedUser = { ...pendingSocialUser, role };
       
-      if (result.success && result.user) {
-        setAuthState({
-          user: result.user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
-        
-        setPendingSocialUser(null);
-        setShowRoleSelection(false);
-        return true;
-      } else {
-        setAuthState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: result.message
-        }));
-        return false;
-      }
+      setAuthState({
+        user: updatedUser,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null
+      });
+      
+      setPendingSocialUser(null);
+      setShowRoleSelection(false);
+      return true;
     } catch (error) {
       setAuthState(prev => ({
         ...prev,

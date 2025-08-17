@@ -1,231 +1,254 @@
-// Secure authentication service using backend APIs
+// Secure authentication service using Supabase Auth
 import { User, LoginCredentials, RegisterData } from '../types';
-import apiClient from './apiClient';
-import sessionManager from './sessionManager';
-import jwtService from './jwtService';
+import { supabase } from './supabaseClient';
 
 export const secureAuthService = {
   // Register new user
-  async register(data: RegisterData): Promise<{ success: boolean; message: string; user?: User }> {
+  async register(userData: RegisterData): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const response = await apiClient.register(data);
-      
-      if (response.success && response.user) {
-        // Set session with tokens
-        if (response.token) {
-          sessionManager.setSession(response.token, undefined, response.user);
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            full_name: userData.name,
+            role: userData.role
+          }
         }
-
-        const user: User = {
-          id: response.user.id,
-          email: response.user.email,
-          name: response.user.name,
-          role: response.user.role,
-          avatar: response.user.avatar,
-          createdAt: new Date(response.user.created_at),
-          lastLoginAt: response.user.last_login_at ? new Date(response.user.last_login_at) : undefined,
-          isEmailVerified: response.user.email_verified,
-          walletAddress: response.user.wallet_address
-        };
-
-        return { success: true, message: response.message || 'Registration successful', user };
+      });
+      
+      if (error) {
+        return { success: false, message: error.message };
       }
-
-      return { success: false, message: response.error || 'Registration failed' };
+      
+      if (data.user) {
+        const user: User = {
+          id: data.user.id,
+          email: data.user.email!,
+          name: userData.name,
+          role: userData.role,
+          createdAt: new Date(data.user.created_at),
+          isEmailVerified: data.user.email_confirmed_at !== null
+        };
+        
+        return { success: true, user, message: 'Registration successful' };
+      }
+      
+      return { success: false, message: 'Registration failed' };
     } catch (error: any) {
       console.error('Registration error:', error);
-      return { success: false, message: error.message || 'Registration failed. Please try again.' };
+      return { success: false, message: error.message || 'Registration failed' };
     }
   },
 
   // Login user
-  async login(credentials: LoginCredentials): Promise<{ success: boolean; message: string; user?: User }> {
+  async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const response = await apiClient.login(credentials);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      });
       
-      if (response.success && response.user) {
-        // Set session with tokens
-        if (response.token) {
-          sessionManager.setSession(response.token, undefined, response.user);
-        }
-
-        const user: User = {
-          id: response.user.id,
-          email: response.user.email,
-          name: response.user.name,
-          role: response.user.role,
-          avatar: response.user.avatar,
-          createdAt: new Date(response.user.created_at),
-          lastLoginAt: response.user.last_login_at ? new Date(response.user.last_login_at) : undefined,
-          isEmailVerified: response.user.email_verified,
-          walletAddress: response.user.wallet_address
-        };
-
-        return { success: true, message: response.message || 'Login successful', user };
+      if (error) {
+        return { success: false, message: error.message };
       }
-
-      return { success: false, message: response.error || 'Login failed' };
+      
+      if (data.user) {
+        const user: User = {
+          id: data.user.id,
+          email: data.user.email!,
+          name: data.user.user_metadata?.full_name || data.user.email!,
+          role: data.user.user_metadata?.role || 'freelancer',
+          createdAt: new Date(data.user.created_at),
+          isEmailVerified: data.user.email_confirmed_at !== null
+        };
+        
+        return { success: true, user, message: 'Login successful' };
+      }
+      
+      return { success: false, message: 'Login failed' };
     } catch (error: any) {
       console.error('Login error:', error);
-      return { success: false, message: error.message || 'Login failed. Please try again.' };
+      return { success: false, message: error.message || 'Login failed' };
     }
   },
 
   // Get current user
-  async getCurrentUser(): Promise<User | null> {
+  async getCurrentUser(): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      // Check session validity first
-      const isValid = await sessionManager.validateSession();
-      if (!isValid) {
-        return null;
-      }
-
-      const response = await apiClient.getCurrentUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
       
-      // Handle 401 (unauthorized) as expected behavior for unauthenticated users
-      if (response.status === 401) {
-        return null;
+      if (error) {
+        return { success: false, message: error.message };
       }
       
-      if (response.success && response.user) {
-        return {
-          id: response.user.id,
-          email: response.user.email,
-          name: response.user.name,
-          role: response.user.role,
-          avatar: response.user.avatar,
-          createdAt: new Date(response.user.created_at),
-          lastLoginAt: response.user.last_login_at ? new Date(response.user.last_login_at) : undefined,
-          isEmailVerified: response.user.email_verified,
-          walletAddress: response.user.wallet_address
+      if (user) {
+        const currentUser: User = {
+          id: user.id,
+          email: user.email!,
+          name: user.user_metadata?.full_name || user.email!,
+          role: user.user_metadata?.role || 'freelancer',
+          createdAt: new Date(user.created_at),
+          isEmailVerified: user.email_confirmed_at !== null
         };
+        
+        return { success: true, user: currentUser };
       }
-
-      return null;
-    } catch (error) {
-      console.error('Error getting current user:', error);
-      return null;
+      
+      return { success: false, message: 'No user found' };
+    } catch (error: any) {
+      console.error('Get current user error:', error);
+      return { success: false, message: error.message || 'Failed to get user' };
     }
   },
 
   // Logout user
-  async logout(): Promise<void> {
+  async logout(): Promise<{ success: boolean; message?: string }> {
     try {
-      await apiClient.logout();
-      sessionManager.clearSession();
-    } catch (error) {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        return { success: false, message: error.message };
+      }
+      
+      return { success: true, message: 'Logged out successfully' };
+    } catch (error: any) {
       console.error('Logout error:', error);
-      // Clear session even if API call fails
-      sessionManager.clearSession();
+      return { success: false, message: error.message || 'Logout failed' };
     }
   },
 
-  // Update user profile
-  async updateProfile(updates: Partial<Pick<User, 'name' | 'avatar' | 'walletAddress'>>): Promise<{ success: boolean; message: string; user?: User }> {
+  // Refresh authentication token
+  async refreshAuth(): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const profileUpdates: any = {};
-      if (updates.name) profileUpdates.name = updates.name;
-      if (updates.avatar) profileUpdates.avatar = updates.avatar;
-      if (updates.walletAddress) profileUpdates.wallet_address = updates.walletAddress;
-
-      const response = await apiClient.updateProfile(profileUpdates);
+      const { data, error } = await supabase.auth.refreshSession();
       
-      if (response.success && response.user) {
-        // Update session with new user data
-        const currentToken = jwtService.getAccessToken();
-        if (currentToken) {
-          sessionManager.setSession(currentToken, undefined, response.user);
-        }
-
+      if (error) {
+        return { success: false, message: error.message };
+      }
+      
+      if (data.user) {
         const user: User = {
-          id: response.user.id,
-          email: response.user.email,
-          name: response.user.name,
-          role: response.user.role,
-          avatar: response.user.avatar,
-          createdAt: new Date(response.user.created_at),
-          lastLoginAt: response.user.last_login_at ? new Date(response.user.last_login_at) : undefined,
-          isEmailVerified: response.user.email_verified,
-          walletAddress: response.user.wallet_address
+          id: data.user.id,
+          email: data.user.email!,
+          name: data.user.user_metadata?.full_name || data.user.email!,
+          role: data.user.user_metadata?.role || 'freelancer',
+          createdAt: new Date(data.user.created_at),
+          isEmailVerified: data.user.email_confirmed_at !== null
         };
-
-        return { success: true, message: response.message || 'Profile updated successfully', user };
+        
+        return { success: true, user };
       }
-
-      return { success: false, message: response.error || 'Failed to update profile' };
+      
+      return { success: false, message: 'Token refresh failed' };
     } catch (error: any) {
-      console.error('Profile update error:', error);
-      return { success: false, message: error.message || 'Failed to update profile' };
+      console.error('Token refresh error:', error);
+      return { success: false, message: error.message || 'Token refresh failed' };
     }
   },
 
-  // Social authentication
-  async socialLogin(provider: 'google' | 'github', code: string, role?: string): Promise<{ success: boolean; message: string; user?: User }> {
+  // Social login (Google)
+  async loginWithGoogle(): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      let response;
-      
-      if (provider === 'google') {
-        const redirectUri = `${window.location.origin}/auth/google/callback`;
-        response = await apiClient.googleOAuth(code, redirectUri, role);
-      } else {
-        response = await apiClient.githubOAuth(code, role);
-      }
-      
-      if (response.success && response.user) {
-        // Set session with tokens
-        if (response.token) {
-          sessionManager.setSession(response.token, undefined, response.user);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
         }
-
-        const user: User = {
-          id: response.user.id,
-          email: response.user.email,
-          name: response.user.name,
-          role: response.user.role,
-          avatar: response.user.avatar,
-          createdAt: new Date(response.user.created_at),
-          lastLoginAt: response.user.last_login_at ? new Date(response.user.last_login_at) : undefined,
-          isEmailVerified: response.user.email_verified,
-          walletAddress: response.user.wallet_address
-        };
-
-        return { success: true, message: response.message || 'Social login successful', user };
+      });
+      
+      if (error) {
+        return { success: false, message: error.message };
       }
-
-      return { success: false, message: response.error || 'Social login failed' };
+      
+      // OAuth redirect will handle the rest
+      return { success: true, message: 'Redirecting to Google...' };
     } catch (error: any) {
-      console.error('Social login error:', error);
-      return { success: false, message: error.message || 'Social login failed. Please try again.' };
+      console.error('Google login error:', error);
+      return { success: false, message: error.message || 'Google login failed' };
     }
   },
 
-  // Check if session is valid
-  async isSessionValid(): Promise<boolean> {
+  // Social login (GitHub)
+  async loginWithGitHub(): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      return await sessionManager.validateSession();
-    } catch (error) {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) {
+        return { success: false, message: error.message };
+      }
+      
+      // OAuth redirect will handle the rest
+      return { success: true, message: 'Redirecting to GitHub...' };
+    } catch (error: any) {
+      console.error('GitHub login error:', error);
+      return { success: false, message: error.message || 'GitHub login failed' };
+    }
+  },
+
+  // Check if user is authenticated
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      return !!user;
+    } catch {
       return false;
     }
   },
 
-  // Get session info
-  getSessionInfo(): {
-    isAuthenticated: boolean;
-    user: any | null;
-    tokenExpiry: number | null;
-    timeUntilExpiry: number | null;
-  } {
-    const sessionState = sessionManager.getSessionState();
-    return {
-      isAuthenticated: sessionState.isAuthenticated,
-      user: sessionState.user,
-      tokenExpiry: sessionState.tokenExpiry,
-      timeUntilExpiry: sessionManager.getTimeUntilExpiry()
-    };
+  // Get current user from session (without API call)
+  async getCurrentUserFromSession(): Promise<User | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        return {
+          id: user.id,
+          email: user.email!,
+          name: user.user_metadata?.full_name || user.email!,
+          role: user.user_metadata?.role || 'freelancer',
+          createdAt: new Date(user.created_at),
+          isEmailVerified: user.email_confirmed_at !== null
+        };
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
   },
 
-  // Force token refresh
-  async refreshToken(): Promise<boolean> {
-    return await sessionManager.refreshTokenIfNeeded();
+  // Check session validity
+  async isSessionValid(): Promise<boolean> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return !!session;
+    } catch {
+      return false;
+    }
+  },
+
+  // Listen to auth state changes
+  onAuthStateChange(callback: (user: User | null) => void) {
+    return supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email!,
+          name: session.user.user_metadata?.full_name || session.user.email!,
+          role: session.user.user_metadata?.role || 'freelancer',
+          createdAt: new Date(session.user.created_at),
+          isEmailVerified: session.user.email_confirmed_at !== null
+        };
+        callback(user);
+      } else {
+        callback(null);
+      }
+    });
   }
 };
