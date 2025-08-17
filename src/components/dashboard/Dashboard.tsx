@@ -7,7 +7,7 @@ import { invoiceStorage } from '../../services/invoiceStorage';
 import NotificationBell from '../ui/NotificationBell';
 import NotificationBanner from '../ui/NotificationBanner';
 import { useNotifications } from '../../hooks/useNotifications';
-import BlockchainStatus from '../blockchain/BlockchainStatus';
+
 
 interface DashboardProps {
   walletInfo: WalletInfo;
@@ -133,8 +133,7 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
           </div>
         </div>
 
-        {/* Blockchain Status */}
-        <BlockchainStatus className="mb-8" />
+
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
