@@ -17,7 +17,7 @@ import HowItWorks from './components/landing/HowItWorks';
 import Testimonials from './components/landing/Testimonials';
 import FAQ from './components/landing/FAQ';
 import Dashboard from './components/dashboard/Dashboard';
-import EmployerDashboard from './components/dashboard/EmployerDashboard';
+import { EmployerDashboard } from './components/dashboard/EmployerDashboard';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import EmployerInvoice from './components/pages/EmployerInvoice';
 import AboutUs from './components/pages/AboutUs';
@@ -211,6 +211,17 @@ function App() {
     setIsLoginModalOpen(true);
   };
 
+  const handleDisconnectWallet = async () => {
+    try {
+      await disconnectWallet();
+      // Optionally show a success message
+      toast.success('Wallet disconnected');
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      toast.error('Failed to disconnect wallet');
+    }
+  };
+
   const handleLogout = () => {
     logout();
     disconnectWallet(); // Also disconnect wallet
@@ -326,10 +337,11 @@ function App() {
         }
         return (
           <Dashboard
-            walletInfo={user.walletAddress ? { ...walletInfo, address: user.walletAddress, isConnected: true } : walletInfo}
+            walletInfo={walletInfo.isConnected ? walletInfo : { ...walletInfo, isConnected: false }}
             invoices={invoices}
             onCreateInvoice={handleCreateInvoice}
-            onDisconnectWallet={handleLogout}
+            onDisconnectWallet={handleDisconnectWallet}
+            onConnectWallet={connectWallet}
             onViewInvoice={(invoice) => {
               setSelectedInvoice(invoice);
               setCurrentView('freelancer-invoice-view');

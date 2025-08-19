@@ -1,118 +1,370 @@
-// Invoice service for managing invoices with backend integration
-import { Invoice, CreateInvoiceData } from '../types';
-import apiClient from './apiClient';
-import CryptoJS from 'crypto-js';
+// Invoice service for managing invoices with Supabase backend
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Invoice, CreateInvoiceData, InvoiceStatus } from '../types';
+import { supabase } from './supabaseClient';
 
-export interface InvoiceApiData {
+// Extended interface for database invoice data
+interface DatabaseInvoice {
   id?: string;
+  invoice_number: string;
+  user_id: string;
   employer_email: string;
   freelancer_name: string;
   freelancer_email: string;
   wallet_address: string;
   network: string;
   token: string;
-  amount: string;
+  amount: number;
   role: string;
   description: string;
   description_html?: string;
+  status: InvoiceStatus;
+  data_hash: string;
+  rejection_reason?: string;
+  sent_at?: string | null;
+  paid_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface InvoiceResponse {
   success: boolean;
   message: string;
-  invoice?: any;
+  invoice?: Invoice | null;
   error?: string;
 }
 
 class InvoiceService {
+  private supabase: SupabaseClient;
+
+  constructor() {
+    this.supabase = supabase;
+  }
+
+  // Generate a unique invoice number
+  private generateInvoiceNumber(): string {
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(1000 + Math.random() * 9000);
+    return `INV-${timestamp}${random}`;
+  }
+
+  // Generate data hash for invoice integrity
+  private generateDataHash(data: any): string {
+    // Create a canonical JSON string with sorted keys
+    const canonicalJson = JSON.stringify(data, Object.keys(data).sort());
+    
+    // Simple hash function (not cryptographically secure, but good enough for our needs)
+    let hash = 0;
+    for (let i = 0; i < canonicalJson.length; i++) {
+      const char = canonicalJson.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString(16);
+  }
+
+  // Map database invoice to application invoice format
+  private mapDbInvoiceToAppInvoice(dbInvoice: DatabaseInvoice): Invoice {
+    // Ensure the status is one of the valid InvoiceStatus values
+    const validStatuses: InvoiceStatus[] = ['Draft', 'Sent', 'Pending', 'Approved', 'Paid', 'Rejected', 'Cancelled'];
+    const status = validStatuses.includes(dbInvoice.status as InvoiceStatus) 
+      ? dbInvoice.status as InvoiceStatus 
+      : 'Draft';
+      
+    return {
+      id: dbInvoice.id || '',
+      employerEmail: dbInvoice.employer_email,
+      amount: dbInvoice.amount.toString(),
+      status,
+      freelancerName: dbInvoice.freelancer_name,
+      freelancerEmail: dbInvoice.freelancer_email,
+      walletAddress: dbInvoice.wallet_address,
+      network: dbInvoice.network,
+      token: dbInvoice.token,
+      role: dbInvoice.role,
+      description: dbInvoice.description,
+      createdAt: new Date(dbInvoice.created_at),
+      sentDate: dbInvoice.sent_at ? new Date(dbInvoice.sent_at) : undefined,
+      paidDate: dbInvoice.paid_at ? new Date(dbInvoice.paid_at) : undefined,
+    };
+  }
+
+  // Map app invoice data to database format
+  private mapAppInvoiceToDbInvoice(data: CreateInvoiceData, userId: string, status: InvoiceStatus = 'Draft'): Omit<DatabaseInvoice, 'id' | 'created_at' | 'updated_at'> {
+    // Ensure required fields have default values
+    const amount = parseFloat(data.amount) || 0;
+    const token = data.token || 'ETH';
+    const description = data.description || '';
+    
+    return {
+      invoice_number: this.generateInvoiceNumber(),
+      user_id: userId,
+      employer_email: data.employerEmail || '',
+      freelancer_name: data.fullName || 'Unknown User',
+      freelancer_email: data.email || '',
+      wallet_address: data.walletAddress || '',
+      network: data.network || 'ethereum', // Default to ethereum if not specified
+      token: token,
+      amount: amount,
+      role: data.role || 'freelancer', // Default role
+      description: description,
+      description_html: data.descriptionHtml || description, // Fallback to plain text if HTML not provided
+      status: status,
+      data_hash: this.generateDataHash(data),
+      sent_at: status === 'Sent' ? new Date().toISOString() : null,
+      paid_at: null,
+    };
+  }
+
   // Create or update invoice draft
   async saveDraft(data: CreateInvoiceData, draftId?: string): Promise<InvoiceResponse> {
     try {
-      // For now, use local storage until backend is properly connected
-      const invoice = {
-        id: draftId || `DRAFT-${Date.now()}`,
-        ...data,
-        status: 'Draft' as const,
-        createdAt: new Date(),
-        token: data.token || 'ETH'
-      };
+      // Get current user
+      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
       
-      // Store locally
-      const drafts = JSON.parse(localStorage.getItem('invoy_drafts') || '[]');
-      const existingIndex = drafts.findIndex((d: any) => d.id === invoice.id);
-      
-      if (existingIndex >= 0) {
-        drafts[existingIndex] = invoice;
-      } else {
-        drafts.push(invoice);
+      if (userError || !user) {
+        throw new Error(userError?.message || 'User not authenticated');
       }
+
+      const now = new Date().toISOString();
+      const invoiceData = this.mapAppInvoiceToDbInvoice(data, user.id, 'Draft');
       
-      localStorage.setItem('invoy_drafts', JSON.stringify(drafts));
-      
+      const invoiceToSave: Partial<DatabaseInvoice> = {
+        ...invoiceData,
+        invoice_number: invoiceData.invoice_number,
+        user_id: user.id,
+        status: 'Draft',
+        created_at: draftId ? undefined : now,
+        updated_at: now,
+        data_hash: this.generateDataHash(data)
+      };
+
+      let result;
+      if (draftId) {
+        const { data, error } = await this.supabase
+          .from('invoices')
+          .update(invoiceToSave)
+          .eq('id', draftId)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        result = data;
+      } else {
+        const { data, error } = await this.supabase
+          .from('invoices')
+          .insert([{ ...invoiceToSave, created_at: now }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        result = data;
+      }
+
       return {
         success: true,
-        message: 'Draft saved successfully',
-        invoice
+        message: draftId ? 'Draft updated successfully' : 'Draft created successfully',
+        invoice: result ? this.mapDbInvoiceToAppInvoice(result) : undefined
       };
     } catch (error: any) {
       return {
         success: false,
-        message: error.message || 'Failed to save invoice draft',
-        error: error.message
+        message: 'Failed to save draft',
+        error: error.message || 'Unknown error'
       };
     }
   }
 
+
   // Submit complete invoice
   async submitInvoice(data: CreateInvoiceData, draftId?: string): Promise<InvoiceResponse> {
     try {
-      // Generate secure invoice ID
-      const invoiceId = this.generateSecureInvoiceId();
+      // Get authenticated user
+      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
       
-      const invoice = {
-        id: invoiceId,
-        ...data,
-        status: 'Sent' as const,
-        createdAt: new Date(),
-        sentDate: new Date(),
-        token: data.token || 'ETH'
-      };
-      
-      // Store in global storage for employer access
-      const allInvoices = JSON.parse(localStorage.getItem('invoy_all_invoices') || '[]');
-      allInvoices.unshift(invoice);
-      localStorage.setItem('invoy_all_invoices', JSON.stringify(allInvoices));
-      
-      // Remove from drafts if it was a draft
-      if (draftId) {
-        const drafts = JSON.parse(localStorage.getItem('invoy_drafts') || '[]');
-        const filteredDrafts = drafts.filter((d: any) => d.id !== draftId);
-        localStorage.setItem('invoy_drafts', JSON.stringify(filteredDrafts));
+      if (userError || !user) {
+        throw new Error(userError?.message || 'User not authenticated');
       }
-      
-      return {
-        success: true,
-        message: 'Invoice submitted successfully',
-        invoice: {
-          invoice_number: invoiceId,
-          employer_email: data.employerEmail,
-          freelancer_name: data.fullName,
-          freelancer_email: data.email,
-          wallet_address: data.walletAddress,
-          network: data.network,
-          token: data.token || 'ETH',
-          amount: parseFloat(data.amount),
-          role: data.role,
-          description: data.description,
-          status: 'Sent',
-          created_at: new Date().toISOString()
+
+      // Get the user's auth data to check for existing profile
+      const { data: { user: authUser }, error: authError } = await this.supabase.auth.getUser();
+      if (authError || !authUser) {
+        throw new Error(authError?.message || 'Failed to fetch user details');
+      }
+
+      // Check if user exists in the public.users table
+      const { data: dbUser } = await this.supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      // If user doesn't exist in public.users, create them
+      if (!dbUser) {
+        console.log('Creating new user profile in public.users...');
+        
+        // Get user data from auth
+        const userEmail = user.email || data.email;
+        if (!userEmail) {
+          throw new Error('Email is required for user creation');
         }
+
+        // Determine the user's role based on the data or default to 'freelancer'
+        const allowedRoles = ['freelancer', 'employer'] as const;
+        type AllowedRole = typeof allowedRoles[number];
+        
+        // Use the role from the form data if it's valid, otherwise default to 'freelancer'
+        const userRole: AllowedRole = data.role && allowedRoles.includes(data.role as AllowedRole)
+          ? data.role as AllowedRole
+          : 'freelancer';
+          
+        // Prepare user data with required fields
+        const userData = {
+          id: user.id,
+          email: userEmail,
+          name: data.fullName || user.user_metadata?.name || userEmail.split('@')[0],
+          role: userRole,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        // Try to create the user
+        const { error: createError } = await this.supabase
+          .from('users')
+          .insert(userData);
+
+        if (createError) {
+          console.error('Failed to create user profile:', createError);
+          throw new Error('Failed to create user profile');
+        }
+      }
+
+      // Now proceed with invoice creation
+      const now = new Date().toISOString();
+      const invoiceData = this.mapAppInvoiceToDbInvoice({
+        ...data,
+        email: user.email || data.email || '',
+        fullName: data.fullName || user.user_metadata?.name || 'Unknown User',
+        walletAddress: data.walletAddress || ''
+      }, user.id, 'Sent');
+      
+      const invoiceToSave: Partial<DatabaseInvoice> = {
+        ...invoiceData,
+        status: 'Sent',
+        sent_at: now,
+        updated_at: now,
       };
+
+      // If this was a draft, update it, otherwise create a new invoice
+      let result;
+      if (draftId) {
+        const { data, error } = await this.supabase
+          .from('invoices')
+          .update(invoiceToSave)
+          .eq('id', draftId)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        result = data;
+      } else {
+        const { data, error } = await this.supabase
+          .from('invoices')
+          .insert([{ ...invoiceToSave, created_at: now }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        result = data;
+      }
+
+      if (result) {
+        const invoice = this.mapDbInvoiceToAppInvoice(result);
+        
+        // Send email notification to employer
+        const invoiceLink = `${window.location.origin}/invoice/${result.id}`;
+        await this.sendInvoiceNotification({
+          employerEmail: data.employerEmail,
+          freelancerName: data.fullName,
+          freelancerEmail: data.email,
+          invoiceId: result.id || '',
+          amount: data.amount,
+          network: data.network,
+          description: data.description,
+          invoiceLink
+        });
+
+        return {
+          success: true,
+          message: 'Invoice submitted successfully',
+          invoice
+        };
+      }
+
+      throw new Error('Failed to save invoice');
     } catch (error: any) {
+      console.error('Error submitting invoice:', error);
       return {
         success: false,
-        message: error.message || 'Failed to submit invoice',
-        error: error.message
+        message: 'Failed to submit invoice',
+        error: error.message || 'Unknown error'
+      };
+    }
+  }
+
+  // Send invoice notification to employer
+  private async sendInvoiceNotification(emailData: {
+    employerEmail: string;
+    freelancerName: string;
+    freelancerEmail: string;
+    invoiceId: string;
+    amount: string;
+    network: string;
+    description: string;
+    invoiceLink: string;
+  }): Promise<{ success: boolean; message?: string }> {
+    try {
+      // Import email service dynamically to avoid circular dependencies
+      const { sendInvoiceEmail } = await import('./emailService');
+      const { notificationService } = await import('./notificationService');
+      
+      // Send email to employer
+      const emailResult = await sendInvoiceEmail(emailData);
+      
+      if (!emailResult.success) {
+        console.warn('Failed to send email notification:', emailResult.message);
+      }
+
+      // Check if employer is an existing user
+      const { data: employerUser, error: employerLookupError } = await this.supabase
+        .from('users')
+        .select('id')
+        .eq('email', emailData.employerEmail.toLowerCase())
+        .maybeSingle();
+
+      if (employerLookupError) {
+        console.warn('Error looking up employer user:', employerLookupError);
+      }
+
+      if (employerUser) {
+        const employerId = employerUser.id;
+        // Create notification for employer
+        notificationService.createNewInvoiceNotification(
+          emailData.invoiceId,
+          employerId,
+          emailData.freelancerName,
+          emailData.amount
+        );
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending invoice notification:', error);
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to send notification' 
       };
     }
   }
@@ -120,83 +372,114 @@ class InvoiceService {
   // Get user's invoices
   async getUserInvoices(): Promise<{ success: boolean; invoices?: Invoice[]; error?: string }> {
     try {
-      // Get from local storage for now
-      const allInvoices = JSON.parse(localStorage.getItem('invoy_all_invoices') || '[]');
-      const drafts = JSON.parse(localStorage.getItem('invoy_drafts') || '[]');
+      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
       
-      // Combine invoices and drafts
-      const combined = [...allInvoices, ...drafts];
-      
-      const convertedInvoices: Invoice[] = combined.map((invoice: any) => ({
-        id: invoice.id,
-        employerEmail: invoice.employerEmail,
-        amount: invoice.amount.toString(),
-        status: invoice.status,
-        freelancerName: invoice.fullName || invoice.freelancerName,
-        freelancerEmail: invoice.email || invoice.freelancerEmail,
-        walletAddress: invoice.walletAddress,
-        network: invoice.network,
-        token: invoice.token,
-        role: invoice.role,
-        description: invoice.description,
-        createdAt: new Date(invoice.createdAt),
-        sentDate: invoice.sentDate ? new Date(invoice.sentDate) : undefined,
-        paidDate: invoice.paidDate ? new Date(invoice.paidDate) : undefined
-      }));
+      if (userError || !user) {
+        throw new Error(userError?.message || 'User not authenticated');
+      }
 
-      return { success: true, invoices: convertedInvoices };
+      const { data, error } = await this.supabase
+        .from('invoices')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const invoices = (data || []).map(invoice => this.mapDbInvoiceToAppInvoice(invoice));
+      
+      return { success: true, invoices };
     } catch (error: any) {
+      console.error('Error fetching user invoices:', error);
       return { success: false, error: error.message || 'Failed to fetch invoices' };
     }
   }
 
-  // Get specific invoice by ID
-  async getInvoiceById(invoiceId: string): Promise<{ success: boolean; invoice?: Invoice; error?: string }> {
+  // Get invoices by employer email
+  async getInvoicesByEmployerEmail(email: string): Promise<{ data: Invoice[] | null; error: any }> {
     try {
-      const response = await apiClient.request(`/invoices/${invoiceId}`, {
-        method: 'GET'
-      });
+      const { data, error } = await this.supabase
+        .from('invoices')
+        .select('*')
+        .ilike('employer_email', email)
+        .order('created_at', { ascending: false });
 
-      if (response.success && response.invoice) {
-        const invoice: Invoice = {
-          id: response.invoice.invoice_number,
-          employerEmail: response.invoice.employer_email,
-          amount: response.invoice.amount.toString(),
-          status: response.invoice.status,
-          freelancerName: response.invoice.freelancer_name,
-          freelancerEmail: response.invoice.freelancer_email,
-          walletAddress: response.invoice.wallet_address,
-          network: response.invoice.network,
-          token: response.invoice.token,
-          role: response.invoice.role,
-          description: response.invoice.description,
-          createdAt: new Date(response.invoice.created_at),
-          sentDate: response.invoice.sent_at ? new Date(response.invoice.sent_at) : undefined,
-          paidDate: response.invoice.paid_at ? new Date(response.invoice.paid_at) : undefined
-        };
+      if (error) throw error;
 
-        return { success: true, invoice };
-      }
-
-      return { success: false, error: response.error || 'Invoice not found' };
-    } catch (error: any) {
-      return { success: false, error: error.message || 'Failed to fetch invoice' };
+      const invoices = (data || []).map(invoice => this.mapDbInvoiceToAppInvoice(invoice));
+      
+      return { data: invoices, error: null };
+    } catch (error) {
+      console.error('Error fetching employer invoices:', error);
+      return { data: null, error };
     }
   }
 
-  // Update invoice status
-  async updateInvoiceStatus(
-    invoiceId: string, 
-    status: string, 
-    rejectionReason?: string
-  ): Promise<InvoiceResponse> {
+  // Get invoice by ID
+  async getInvoiceById(invoiceId: string): Promise<{ success: boolean; invoice?: Invoice; error?: string }> {
     try {
-      const response = await apiClient.request(`/invoices/${invoiceId}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ status, rejection_reason: rejectionReason })
-      });
+      const { data: invoice, error } = await this.supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', invoiceId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (invoice) {
+        return { 
+          success: true, 
+          invoice: this.mapDbInvoiceToAppInvoice(invoice) 
+        };
+      }
 
-      return response;
+      return { 
+        success: false, 
+        error: 'Invoice not found' 
+      };
+    } catch (error: any) {
+      return { 
+        success: false, 
+        error: error.message || 'Failed to fetch invoice' 
+      };
+    }
+  }
+
+  // Update invoice status (for employers)
+  async updateInvoiceStatus(
+    invoiceId: string,
+    status: 'Approved' | 'Rejected' | 'Paid',
+    rejectionReason?: string
+  ): Promise<{ success: boolean; message: string; invoice?: Invoice; error?: string }> {
+    try {
+      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error(userError?.message || 'User not authenticated');
+      }
+
+      const updateData: Partial<DatabaseInvoice> = {
+        status,
+        updated_at: new Date().toISOString(),
+        ...(status === 'Rejected' && { rejection_reason: rejectionReason }),
+        ...(status === 'Paid' && { paid_at: new Date().toISOString() })
+      };
+
+      const { data: updatedInvoice, error } = await this.supabase
+        .from('invoices')
+        .update(updateData)
+        .eq('id', invoiceId)
+        .eq('employer_email', user.email) // Ensure the user is the employer
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      return {
+        success: true,
+        message: 'Invoice status updated successfully',
+        invoice: updatedInvoice ? this.mapDbInvoiceToAppInvoice(updatedInvoice) : undefined
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -209,11 +492,37 @@ class InvoiceService {
   // Delete invoice
   async deleteInvoice(invoiceId: string): Promise<InvoiceResponse> {
     try {
-      const response = await apiClient.request(`/invoices/${invoiceId}`, {
-        method: 'DELETE'
-      });
+      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error(userError?.message || 'User not authenticated');
+      }
 
-      return response;
+      // First get the invoice to verify ownership
+      const { data: invoice, error: fetchError } = await this.supabase
+        .from('invoices')
+        .select('user_id')
+        .eq('id', invoiceId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Only the creator can delete the invoice
+      if (invoice.user_id !== user.id) {
+        throw new Error('Unauthorized to delete this invoice');
+      }
+
+      const { error } = await this.supabase
+        .from('invoices')
+        .delete()
+        .eq('id', invoiceId);
+      
+      if (error) throw error;
+      
+      return {
+        success: true,
+        message: 'Invoice deleted successfully'
+      };
     } catch (error: any) {
       return {
         success: false,
@@ -241,41 +550,7 @@ class InvoiceService {
     return { isCompatible: true };
   }
 
-  // Generate invoice hash for verification
-  generateInvoiceHash(data: CreateInvoiceData): string {
-    const canonicalData = {
-      employer_email: data.employerEmail.toLowerCase(),
-      freelancer_name: data.fullName.trim(),
-      freelancer_email: data.email.toLowerCase(),
-      wallet_address: data.walletAddress.toLowerCase(),
-      network: data.network.toLowerCase(),
-      token: (data.token || 'ETH').toUpperCase(),
-      amount: parseFloat(data.amount).toFixed(8),
-      role: data.role.trim(),
-      description: data.description.trim()
-    };
-    
-    const canonicalJson = JSON.stringify(canonicalData, Object.keys(canonicalData).sort());
-    return CryptoJS.SHA256(canonicalJson).toString();
-  }
 
-  // Convert markdown to HTML (basic implementation)
-  private convertMarkdownToHtml(markdown: string): string {
-    return markdown
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
-  }
-
-  // Generate cryptographically secure invoice ID
-  private generateSecureInvoiceId(): string {
-    const timestamp = Date.now().toString(36);
-    const randomBytes = new Uint8Array(8);
-    crypto.getRandomValues(randomBytes);
-    const randomString = Array.from(randomBytes, byte => byte.toString(36)).join('');
-    return `INV-${timestamp}-${randomString}`.toUpperCase();
-  }
 }
 
 export const invoiceService = new InvoiceService();

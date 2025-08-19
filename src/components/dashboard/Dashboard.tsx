@@ -1,54 +1,91 @@
-import React from 'react';
-import { Plus, User, Globe, Search, X } from 'lucide-react';
-import { LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Globe, Search, X } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { WalletInfo, Invoice } from '../../types';
 import InvoiceTable from './InvoiceTable';
 import { invoiceStorage } from '../../services/invoiceStorage';
 import NotificationBell from '../ui/NotificationBell';
 import NotificationBanner from '../ui/NotificationBanner';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 
 interface DashboardProps {
   walletInfo: WalletInfo;
   invoices: Invoice[];
   onCreateInvoice: () => void;
+  onConnectWallet: () => Promise<void>;
   onDisconnectWallet: () => void;
   onViewInvoice?: (invoice: Invoice) => void;
   onDeleteInvoice?: (invoiceId: string) => void;
 }
 
-export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDisconnectWallet, onViewInvoice, onDeleteInvoice }: DashboardProps) {
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [filteredInvoices, setFilteredInvoices] = React.useState<Invoice[]>(invoices);
-  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState<string | null>(null);
+// Main Dashboard component that handles both redirection and content rendering
+export default function Dashboard({ 
+  walletInfo, 
+  invoices, 
+  onCreateInvoice, 
+  onConnectWallet, 
+  onDisconnectWallet, 
+  onViewInvoice, 
+  onDeleteInvoice 
+}: DashboardProps) {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>(invoices);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  
+  // Handle notifications
+  const { notifications, refreshNotifications } = useNotifications(
+    walletInfo?.address || ''
+  );
 
-  // Notifications
-  const { notifications, unreadCount, refreshNotifications } = useNotifications(walletInfo.address);
+  // Handle redirection based on auth state
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (isAuthenticated && user) {
+      if (user.role === 'employer') {
+        navigate('/employer/dashboard', { replace: true });
+      } else if (user.role === 'freelancer') {
+        navigate('/freelancer/dashboard', { replace: true });
+      } else {
+        onDisconnectWallet?.();
+        toast.error('Your account does not have a valid role. Please contact support.');
+      }
+    } else if (!isAuthenticated) {
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthenticated, user, authLoading, navigate, onDisconnectWallet]);
 
   // Filter invoices based on search term
-  React.useEffect(() => {
+  useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredInvoices(invoices);
     } else {
       const filtered = invoices.filter(invoice => 
-        invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.employerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.freelancerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (invoice.id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (invoice.employerEmail?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (invoice.freelancerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (invoice.role?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (invoice.status?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (invoice.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       );
       setFilteredInvoices(filtered);
     }
   }, [searchTerm, invoices]);
 
+  // Calculate invoice statistics
   const pendingInvoices = invoices.filter(inv => inv.status === 'Pending').length;
   const paidInvoices = invoices.filter(inv => inv.status === 'Paid').length;
   const totalAmount = invoices
     .filter(inv => inv.status === 'Paid')
-    .reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
+    .reduce((sum, inv) => sum + parseFloat(inv.amount || '0'), 0);
 
+  // Utility functions
   const formatAddress = (address: string): string => {
     if (!address) return '';
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
@@ -77,17 +114,29 @@ export default function Dashboard({ walletInfo, invoices, onCreateInvoice, onDis
               <p className="text-gray-600 dark:text-gray-300">Manage your invoices and payments</p>
             </div>
             
-            {/* Disconnect Wallet Button */}
+            {/* Wallet Connection Button */}
             <div className="flex flex-col items-start md:items-end">
               <button
-                onClick={onDisconnectWallet}
-                className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+                onClick={walletInfo.isConnected ? onDisconnectWallet : onConnectWallet}
+                className={`${
+                  walletInfo.isConnected 
+                    ? 'bg-gradient-to-r from-red-600 to-pink-600' 
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600'
+                } text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center space-x-2`}
               >
-                <LogOut size={18} />
-                <span>Disconnect Wallet</span>
+                {walletInfo.isConnected ? (
+                  <>
+                    <LogOut size={18} />
+                    <span>Disconnect Wallet</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Connect Wallet</span>
+                  </>
+                )}
               </button>
               <span className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
-                {formatAddress(walletInfo.address)}
+                {walletInfo.isConnected ? formatAddress(walletInfo.address) : 'Not connected'}
               </span>
             </div>
           </div>

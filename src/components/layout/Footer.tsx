@@ -1,4 +1,3 @@
-import React from 'react';
 import { Twitter, Linkedin, Github, Mail } from 'lucide-react';
 
 export default function Footer() {
@@ -10,56 +9,11 @@ export default function Footer() {
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 relative">
-                <svg viewBox="0 0 32 32" className="w-full h-full">
-                  <defs>
-                    <linearGradient id="footerLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#3B82F6" />
-                      <stop offset="50%" stopColor="#8B5CF6" />
-                      <stop offset="100%" stopColor="#06B6D4" />
-                    </linearGradient>
-                    <linearGradient id="footerInvoiceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#10B981" />
-                      <stop offset="100%" stopColor="#059669" />
-                    </linearGradient>
-                  </defs>
-                  
-                  {/* Invoice document background */}
-                  <path
-                    d="M6 4 L24 4 L26 6 L26 28 L6 28 Z"
-                    fill="url(#footerLogoGradient)"
-                    className="drop-shadow-lg"
-                  />
-                  
-                  {/* Document corner fold */}
-                  <path
-                    d="M24 4 L24 6 L26 6 Z"
-                    fill="url(#footerInvoiceGradient)"
-                    opacity="0.7"
-                  />
-                  
-                  {/* Invoice content lines */}
-                  <g stroke="white" strokeWidth="1.5" opacity="0.8" fill="none">
-                    <line x1="9" y1="10" x2="20" y2="10" />
-                    <line x1="9" y1="13" x2="23" y2="13" />
-                    <line x1="9" y1="16" x2="18" y2="16" />
-                  </g>
-                  
-                  {/* Crypto/Web3 elements */}
-                  <g fill="white" opacity="0.9">
-                    {/* Ethereum symbol */}
-                    <path d="M16 19 L13 21 L16 22.5 L19 21 Z" />
-                    <path d="M16 18.5 L13 20.5 L16 17 L19 20.5 Z" opacity="0.6" />
-                    
-                    {/* Blockchain dots */}
-                    <circle cx="11" cy="25" r="1" />
-                    <circle cx="16" cy="25" r="1" />
-                    <circle cx="21" cy="25" r="1" />
-                    
-                    {/* Connection lines */}
-                    <line x1="12" y1="25" x2="15" y2="25" stroke="white" strokeWidth="0.5" opacity="0.6" />
-                    <line x1="17" y1="25" x2="20" y2="25" stroke="white" strokeWidth="0.5" opacity="0.6" />
-                  </g>
-                </svg>
+                <img 
+                  src="/logo.png" 
+                  alt="Invoy Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="text-xl font-bold">Invoy</span>
             </div>

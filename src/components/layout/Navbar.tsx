@@ -1,5 +1,5 @@
-import React from 'react';
-import { Wallet, Menu, X, LogOut, User, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Menu, X, LogOut, User, Settings } from 'lucide-react';
 import DarkModeToggle from '../ui/DarkModeToggle';
 import SessionTimer from '../ui/SessionTimer';
 import { User as UserType } from '../../types';
@@ -27,11 +27,11 @@ export default function Navbar({
   isDarkMode, 
   onToggleDarkMode
 }: NavbarProps) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // Close user menu when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       if (!target.closest('.user-menu-container')) {
@@ -80,56 +80,11 @@ export default function Navbar({
             onClick={() => onViewChange('landing')}
           >
             <div className="w-6 h-6 relative flex-shrink-0">
-              <svg viewBox="0 0 32 32" className="w-full h-full">
-                <defs>
-                  <linearGradient id="navLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#3B82F6" />
-                    <stop offset="50%" stopColor="#8B5CF6" />
-                    <stop offset="100%" stopColor="#06B6D4" />
-                  </linearGradient>
-                  <linearGradient id="navInvoiceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#10B981" />
-                    <stop offset="100%" stopColor="#059669" />
-                  </linearGradient>
-                </defs>
-                
-                {/* Invoice document background */}
-                <path
-                  d="M6 4 L24 4 L26 6 L26 28 L6 28 Z"
-                  fill="url(#navLogoGradient)"
-                  className="drop-shadow-lg"
-                />
-                
-                {/* Document corner fold */}
-                <path
-                  d="M24 4 L24 6 L26 6 Z"
-                  fill="url(#navInvoiceGradient)"
-                  opacity="0.7"
-                />
-                
-                {/* Invoice content lines */}
-                <g stroke="white" strokeWidth="1" opacity="0.8" fill="none">
-                  <line x1="9" y1="10" x2="20" y2="10" />
-                  <line x1="9" y1="13" x2="23" y2="13" />
-                  <line x1="9" y1="16" x2="18" y2="16" />
-                </g>
-                
-                {/* Crypto/Web3 elements */}
-                <g fill="white" opacity="0.9">
-                  {/* Ethereum symbol */}
-                  <path d="M16 19 L13 21 L16 22.5 L19 21 Z" />
-                  <path d="M16 18.5 L13 20.5 L16 17 L19 20.5 Z" opacity="0.6" />
-                  
-                  {/* Blockchain dots */}
-                  <circle cx="11" cy="25" r="0.8" />
-                  <circle cx="16" cy="25" r="0.8" />
-                  <circle cx="21" cy="25" r="0.8" />
-                  
-                  {/* Connection lines */}
-                  <line x1="12" y1="25" x2="15" y2="25" stroke="white" strokeWidth="0.4" opacity="0.6" />
-                  <line x1="17" y1="25" x2="20" y2="25" stroke="white" strokeWidth="0.4" opacity="0.6" />
-                </g>
-              </svg>
+              <img 
+                src="/logo.png" 
+                alt="Invoy Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Invoy
@@ -179,10 +134,14 @@ export default function Navbar({
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <User size={16} className="text-white" />
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                      <User size={16} className="text-blue-600 dark:text-blue-300" />
+                    </div>
+                    <span className="font-medium text-gray-700 dark:text-gray-200">
+                      {user?.name || user?.email?.split('@')[0] || 'User'}
+                    </span>
                   </div>
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">{user.name}</span>
                 </button>
 
                 {/* User Dropdown Menu */}
@@ -247,7 +206,7 @@ export default function Navbar({
                 </>
               )}
               
-              {isAuthenticated && user && (
+              {isAuthenticated && (
                 <>
                   <button
                     onClick={() => {

@@ -18,9 +18,50 @@ export function useWallet() {
   const [connectionError, setConnectionError] = useState<string>('');
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Check if wallet is already connected on page load
+  // Check if wallet is already connected on page load and set up event listeners
   useEffect(() => {
-    checkConnection();
+    const checkInitialConnection = async () => {
+      await checkConnection();
+    };
+    
+    checkInitialConnection();
+
+    // Set up event listeners for account and chain changes
+    const handleAccountsChanged = (accounts: string[]) => {
+      if (accounts.length === 0) {
+        // Wallet disconnected
+        setWalletInfo(prev => ({
+          ...prev,
+          address: '',
+          isConnected: false
+        }));
+      } else {
+        // Account changed
+        setWalletInfo(prev => ({
+          ...prev,
+          address: accounts[0],
+          isConnected: true
+        }));
+      }
+    };
+
+    const handleChainChanged = () => {
+      // Reload the page when the chain changes
+      window.location.reload();
+    };
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+    }
+
+    // Clean up event listeners
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
   }, []);
 
   const checkConnection = async () => {
@@ -160,17 +201,41 @@ export function useWallet() {
     return networks[chainId] || 'Unknown Network';
   };
 
-  const disconnectWallet = () => {
-    setWalletInfo({
-      address: '',
-      network: '',
-      isConnected: false
-    });
-    setConnectionError('');
-    
-    // Clear any stored wallet connection data
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem('walletConnected');
+  const disconnectWallet = async () => {
+    try {
+      // If MetaMask is installed, request account disconnection
+      if (window.ethereum && window.ethereum.isMetaMask) {
+        try {
+          // This is the standard EIP-1193 method for disconnecting
+          await window.ethereum.request({
+            method: 'wallet_revokePermissions',
+            params: [
+              {
+                eth_accounts: {}
+              }
+            ]
+          });
+        } catch (error) {
+          console.warn('Error disconnecting wallet:', error);
+          // Continue with disconnection even if MetaMask disconnect fails
+        }
+      }
+      
+      // Reset local state
+      setWalletInfo({
+        address: '',
+        network: '',
+        isConnected: false
+      });
+      setConnectionError('');
+      
+      // Clear any stored wallet connection data
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('walletConnected');
+      }
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      setConnectionError('Failed to disconnect wallet');
     }
   };
 
