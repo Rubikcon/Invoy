@@ -19,8 +19,12 @@ export function useBlockchain() {
       const result = await blockchainService.initialize(currentNetwork);
       setIsInitialized(result.success);
       
-      if (result.success) {
+      // Only load contract stats if blockchain service initialized successfully
+      if (result.success && result.success === true) {
         await loadContractStats();
+      } else {
+        // Clear any existing stats if initialization failed
+        setContractStats(null);
       }
       
       setIsLoading(false);
@@ -31,9 +35,17 @@ export function useBlockchain() {
 
   // Load contract statistics
   const loadContractStats = async () => {
+    // Only attempt to load stats if blockchain service is initialized
+    if (!isInitialized) {
+      return;
+    }
+    
     const result = await blockchainService.getContractStatistics();
     if (result.success && result.stats) {
       setContractStats(result.stats);
+    } else {
+      // Clear stats if loading failed
+      setContractStats(null);
     }
   };
 

@@ -92,7 +92,20 @@ class BlockchainService {
       }
 
       this.provider = new ethers.providers.Web3Provider(window.ethereum);
-      this.signer = this.provider.getSigner();
+      
+      try {
+        this.signer = this.provider.getSigner();
+        // Check if signer can provide an address
+        const address = await this.signer.getAddress();
+        if (!address || address === ethers.constants.AddressZero) {
+          this.contract = null;
+          return { success: false, message: 'No wallet account available' };
+        }
+      } catch (error) {
+        this.contract = null;
+        return { success: false, message: 'Wallet not connected or authorized' };
+      }
+      
       this.currentNetwork = network;
 
       // Get contract address for network
@@ -332,8 +345,15 @@ class BlockchainService {
     error?: string;
   }> {
     try {
-      if (!this.contract) {
+      if (!this.contract || !this.signer) {
         return { success: false, error: 'Blockchain service not initialized' };
+      }
+
+      // Verify signer is still available
+      try {
+        await this.signer.getAddress();
+      } catch (error) {
+        return { success: false, error: 'Wallet not connected' };
       }
 
       const stats = await this.contract.getStatistics();
