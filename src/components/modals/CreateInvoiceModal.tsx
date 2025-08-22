@@ -150,23 +150,8 @@ export default function CreateInvoiceModal({
         // Register on blockchain if available
         if (blockchainInitialized && result.invoice) {
           try {
-            const invoice: Invoice = {
-              id: result.invoice.invoice_number,
-              employerEmail: result.invoice.employer_email,
-              amount: result.invoice.amount.toString(),
-              status: result.invoice.status,
-              freelancerName: result.invoice.freelancer_name,
-              freelancerEmail: result.invoice.freelancer_email,
-              walletAddress: result.invoice.wallet_address,
-              network: result.invoice.network,
-              token: result.invoice.token,
-              role: result.invoice.role,
-              description: result.invoice.description,
-              createdAt: new Date(result.invoice.created_at)
-            };
-            
             const blockchainResult = await registerOnBlockchain(
-              invoice,
+              result.invoice,
               walletAddress,
               '0x...' // Employer address would need to be resolved
             );
