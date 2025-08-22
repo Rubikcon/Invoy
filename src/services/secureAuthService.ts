@@ -1,34 +1,25 @@
 // Secure authentication service using Supabase Auth
 import { User, LoginCredentials, RegisterData } from '../types';
-import { supabase } from './supabaseClient';
+import { apiClient } from './apiClient';
 
 export const secureAuthService = {
   // Register new user
   async register(userData: RegisterData): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-        options: {
-          data: {
-            full_name: userData.name,
-            role: userData.role
-          }
-        }
-      });
+      const response = await apiClient.register(userData);
       
-      if (error) {
-        return { success: false, message: error.message };
+      if (!response.success) {
+        return { success: false, message: response.error || 'Registration failed' };
       }
       
-      if (data.user) {
+      if (response.user) {
         const user: User = {
-          id: data.user.id,
-          email: data.user.email!,
+          id: response.user.id,
+          email: response.user.email,
           name: userData.name,
           role: userData.role,
-          createdAt: new Date(data.user.created_at),
-          isEmailVerified: data.user.email_confirmed_at !== null
+          createdAt: new Date(response.user.created_at || Date.now()),
+          isEmailVerified: response.user.email_verified || false
         };
         
         return { success: true, user, message: 'Registration successful' };
@@ -44,23 +35,20 @@ export const secureAuthService = {
   // Login user
   async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password
-      });
+      const response = await apiClient.login(credentials);
       
-      if (error) {
-        return { success: false, message: error.message };
+      if (!response.success) {
+        return { success: false, message: response.error || 'Login failed' };
       }
       
-      if (data.user) {
+      if (response.user) {
         const user: User = {
-          id: data.user.id,
-          email: data.user.email!,
-          name: data.user.user_metadata?.full_name || data.user.email!,
-          role: data.user.user_metadata?.role || 'freelancer',
-          createdAt: new Date(data.user.created_at),
-          isEmailVerified: data.user.email_confirmed_at !== null
+          id: response.user.id,
+          email: response.user.email,
+          name: response.user.name || response.user.email,
+          role: response.user.role || 'freelancer',
+          createdAt: new Date(response.user.created_at || Date.now()),
+          isEmailVerified: response.user.email_verified || false
         };
         
         return { success: true, user, message: 'Login successful' };
@@ -76,20 +64,20 @@ export const secureAuthService = {
   // Get current user
   async getCurrentUser(): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const response = await apiClient.getCurrentUser();
       
-      if (error) {
-        return { success: false, message: error.message };
+      if (!response.success) {
+        return { success: false, message: response.error || 'Failed to get user' };
       }
       
-      if (user) {
+      if (response.user) {
         const currentUser: User = {
-          id: user.id,
-          email: user.email!,
-          name: user.user_metadata?.full_name || user.email!,
-          role: user.user_metadata?.role || 'freelancer',
-          createdAt: new Date(user.created_at),
-          isEmailVerified: user.email_confirmed_at !== null
+          id: response.user.id,
+          email: response.user.email,
+          name: response.user.name || response.user.email,
+          role: response.user.role || 'freelancer',
+          createdAt: new Date(response.user.created_at || Date.now()),
+          isEmailVerified: response.user.email_verified || false
         };
         
         return { success: true, user: currentUser };
@@ -105,10 +93,10 @@ export const secureAuthService = {
   // Logout user
   async logout(): Promise<{ success: boolean; message?: string }> {
     try {
-      const { error } = await supabase.auth.signOut();
+      const response = await apiClient.logout();
       
-      if (error) {
-        return { success: false, message: error.message };
+      if (!response.success) {
+        return { success: false, message: response.error || 'Logout failed' };
       }
       
       return { success: true, message: 'Logged out successfully' };
@@ -121,20 +109,20 @@ export const secureAuthService = {
   // Refresh authentication token
   async refreshAuth(): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const { data, error } = await supabase.auth.refreshSession();
+      const response = await apiClient.refreshToken();
       
-      if (error) {
-        return { success: false, message: error.message };
+      if (!response.success) {
+        return { success: false, message: response.error || 'Token refresh failed' };
       }
       
-      if (data.user) {
+      if (response.user) {
         const user: User = {
-          id: data.user.id,
-          email: data.user.email!,
-          name: data.user.user_metadata?.full_name || data.user.email!,
-          role: data.user.user_metadata?.role || 'freelancer',
-          createdAt: new Date(data.user.created_at),
-          isEmailVerified: data.user.email_confirmed_at !== null
+          id: response.user.id,
+          email: response.user.email,
+          name: response.user.name || response.user.email,
+          role: response.user.role || 'freelancer',
+          createdAt: new Date(response.user.created_at || Date.now()),
+          isEmailVerified: response.user.email_verified || false
         };
         
         return { success: true, user };
@@ -147,108 +135,9 @@ export const secureAuthService = {
     }
   },
 
-  // Social login (Google)
-  async loginWithGoogle(): Promise<{ success: boolean; user?: User; message?: string }> {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) {
-        return { success: false, message: error.message };
-      }
-      
-      // OAuth redirect will handle the rest
-      return { success: true, message: 'Redirecting to Google...' };
-    } catch (error: any) {
-      console.error('Google login error:', error);
-      return { success: false, message: error.message || 'Google login failed' };
-    }
-  },
-
-  // Social login (GitHub)
-  async loginWithGitHub(): Promise<{ success: boolean; user?: User; message?: string }> {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) {
-        return { success: false, message: error.message };
-      }
-      
-      // OAuth redirect will handle the rest
-      return { success: true, message: 'Redirecting to GitHub...' };
-    } catch (error: any) {
-      console.error('GitHub login error:', error);
-      return { success: false, message: error.message || 'GitHub login failed' };
-    }
-  },
-
-  // Check if user is authenticated
+  // Check if user is authenticated using API client
   async isAuthenticated(): Promise<boolean> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      return !!user;
-    } catch {
-      return false;
-    }
-  },
-
-  // Get current user from session (without API call)
-  async getCurrentUserFromSession(): Promise<User | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        return {
-          id: user.id,
-          email: user.email!,
-          name: user.user_metadata?.full_name || user.email!,
-          role: user.user_metadata?.role || 'freelancer',
-          createdAt: new Date(user.created_at),
-          isEmailVerified: user.email_confirmed_at !== null
-        };
-      }
-      
-      return null;
-    } catch {
-      return null;
-    }
-  },
-
-  // Check session validity
-  async isSessionValid(): Promise<boolean> {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      return !!session;
-    } catch {
-      return false;
-    }
-  },
-
-  // Listen to auth state changes
-  onAuthStateChange(callback: (user: User | null) => void) {
-    return supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const user: User = {
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata?.full_name || session.user.email!,
-          role: session.user.user_metadata?.role || 'freelancer',
-          createdAt: new Date(session.user.created_at),
-          isEmailVerified: session.user.email_confirmed_at !== null
-        };
-        callback(user);
-      } else {
-        callback(null);
-      }
-    });
+    const tokenInfo = apiClient.getTokenInfo();
+    return tokenInfo.isValid;
   }
 };
