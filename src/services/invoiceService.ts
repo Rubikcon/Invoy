@@ -178,7 +178,7 @@ class InvoiceService {
 
 
   // Submit complete invoice
-  async submitInvoice(data: CreateInvoiceData, userId: string, draftId?: string): Promise<InvoiceResponse> {
+  async submitInvoice(data: CreateInvoiceData, userId: string): Promise<InvoiceResponse> {
     try {
       // Generate invoice ID
       const invoiceId = this.generateInvoiceNumber();
@@ -200,7 +200,26 @@ class InvoiceService {
         sentDate: new Date()
       };
 
-      // Store invoice locally (since Supabase isn't configured)
+      // Store invoice in Supabase
+      const dbInvoice = this.mapAppInvoiceToDbInvoice(data, userId, 'Sent');
+      const { data: savedInvoice, error: saveError } = await this.supabase
+        .from('invoices')
+        .insert([{
+          ...dbInvoice,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (saveError) {
+        console.error('Error saving invoice to database:', saveError);
+        // Fallback to local storage
+      } else {
+        invoice.id = savedInvoice.invoice_number;
+      }
+
+      // Also store invoice locally for compatibility
       const { invoiceStorage } = await import('./invoiceStorage');
       const storedInvoice = {
         id: invoice.id,
@@ -220,7 +239,7 @@ class InvoiceService {
       
       invoiceStorage.save(storedInvoice);
 
-      // Send email notification to employer
+      // Send notification to employer
       const invoiceLink = `${window.location.origin}/invoice/${invoice.id}`;
       await this.sendInvoiceNotification({
         employerEmail: data.employerEmail,
@@ -260,17 +279,8 @@ class InvoiceService {
     invoiceLink: string;
   }): Promise<{ success: boolean; message?: string }> {
     try {
-      // Import email service dynamically to avoid circular dependencies
-      const { sendInvoiceEmail } = await import('./emailService');
       const { notificationService } = await import('./notificationService');
       
-      // Send email to employer
-      const emailResult = await sendInvoiceEmail(emailData);
-      
-      if (!emailResult.success) {
-        console.warn('Failed to send email notification:', emailResult.message);
-      }
-
       // Check if employer is an existing user
       const { data: employerUser, error: employerLookupError } = await this.supabase
         .from('users')
@@ -283,14 +293,18 @@ class InvoiceService {
       }
 
       if (employerUser) {
-        const employerId = employerUser.id;
-        // Create notification for employer
+        // Employer is registered - create in-app notification
         notificationService.createNewInvoiceNotification(
           emailData.invoiceId,
-          employerId,
+          employerUser.id,
           emailData.freelancerName,
           emailData.amount
         );
+        
+        console.log('In-app notification sent to registered employer:', emailData.employerEmail);
+      } else {
+        // Employer is not registered - send email via Supabase
+        await this.sendEmailToUnregisteredEmployer(emailData);
       }
 
       return { success: true };
@@ -300,6 +314,95 @@ class InvoiceService {
         success: false, 
         message: error instanceof Error ? error.message : 'Failed to send notification' 
       };
+    }
+  }
+
+  // Send email to unregistered employer using Supabase
+  private async sendEmailToUnregisteredEmployer(emailData: {
+    employerEmail: string;
+    freelancerName: string;
+    freelancerEmail: string;
+    invoiceId: string;
+    amount: string;
+    network: string;
+    description: string;
+    invoiceLink: string;
+  }): Promise<void> {
+    try {
+      // Use Supabase Edge Function to send email
+      const { data, error } = await this.supabase.functions.invoke('send-invoice-email', {
+        body: {
+          to: emailData.employerEmail,
+          subject: `Invoice ${emailData.invoiceId} - Payment Request from ${emailData.freelancerName}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #1f2937;">New Invoice from ${emailData.freelancerName}</h2>
+              
+              <p>Hi,</p>
+              
+              <p>You've received a new invoice for review and payment approval.</p>
+              
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #374151;">Invoice Details</h3>
+                <ul style="list-style: none; padding: 0;">
+                  <li><strong>Invoice ID:</strong> ${emailData.invoiceId}</li>
+                  <li><strong>Amount:</strong> ${emailData.amount} ETH</li>
+                  <li><strong>Network:</strong> ${emailData.network}</li>
+                  <li><strong>From:</strong> ${emailData.freelancerName} (${emailData.freelancerEmail})</li>
+                </ul>
+                
+                <h4 style="color: #374151;">Work Description:</h4>
+                <p style="background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #3b82f6;">
+                  ${emailData.description}
+                </p>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${emailData.invoiceLink}" 
+                   style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); 
+                          color: white; 
+                          padding: 12px 24px; 
+                          text-decoration: none; 
+                          border-radius: 8px; 
+                          font-weight: bold;
+                          display: inline-block;">
+                  Review & Approve Invoice
+                </a>
+              </div>
+              
+              <p style="color: #6b7280; font-size: 14px;">
+                This invoice has been verified for network compatibility and wallet address validation.
+                Click the button above to review the work details and approve payment.
+              </p>
+              
+              <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+              
+              <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+                This email was sent via Invoy - Web3 Invoicing Platform<br>
+                <a href="${window.location.origin}" style="color: #3b82f6;">Visit Invoy</a>
+              </p>
+            </div>
+          `,
+          freelancer_name: emailData.freelancerName,
+          freelancer_email: emailData.freelancerEmail,
+          invoice_id: emailData.invoiceId,
+          invoice_link: emailData.invoiceLink
+        }
+      });
+
+      if (error) {
+        console.error('Error sending email via Supabase:', error);
+        // Fallback to local email service
+        const { sendInvoiceEmail } = await import('./emailService');
+        await sendInvoiceEmail(emailData);
+      } else {
+        console.log('Email sent successfully via Supabase to:', emailData.employerEmail);
+      }
+    } catch (error) {
+      console.error('Error in email sending:', error);
+      // Fallback to local email service
+      const { sendInvoiceEmail } = await import('./emailService');
+      await sendInvoiceEmail(emailData);
     }
   }
 

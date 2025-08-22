@@ -169,7 +169,7 @@ export default function CreateInvoiceModal({
           success('Invoice Sent', 'Invoice submitted successfully and ready to send to employer');
         }
         
-        success('Invoice Sent', 'Invoice submitted successfully and ready to send to employer');
+        success('Invoice Sent', 'Invoice submitted and notification sent to employer');
         onSubmit(formData, false);
         onClose();
       } else {
