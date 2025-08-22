@@ -153,7 +153,7 @@ export default function CreateInvoiceModal({
             const blockchainResult = await registerOnBlockchain(
               result.invoice,
               walletAddress,
-              '0x...' // Employer address would need to be resolved
+              '0x70997970C51812dc3A0108C7D58634959790A732' // Valid dummy address for development
             );
             
             if (blockchainResult.success) {
