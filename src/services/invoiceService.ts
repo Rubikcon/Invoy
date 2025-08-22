@@ -178,16 +178,8 @@ class InvoiceService {
 
 
   // Submit complete invoice
-  async submitInvoice(data: CreateInvoiceData, draftId?: string): Promise<InvoiceResponse> {
+  async submitInvoice(data: CreateInvoiceData, userId: string, draftId?: string): Promise<InvoiceResponse> {
     try {
-      // Get current user from auth service
-      const { authService } = await import('./authService');
-      const currentUser = authService.getCurrentUser();
-      
-      if (!currentUser) {
-        throw new Error('User not authenticated');
-      }
-
       // Generate invoice ID
       const invoiceId = this.generateInvoiceNumber();
       

@@ -250,26 +250,47 @@ function App() {
   }, [walletInfo.isConnected, walletInfo.address, user, updateProfile]);
 
   const handleSubmitInvoice = async (data: CreateInvoiceData, isDraft: boolean = false) => {
-    if (!user) return;
-    
-    // Refresh invoices list
-    await refreshInvoices();
+    if (!user) {
+      error('Authentication Error', 'Please log in to submit an invoice');
+      return;
+    }
     
     if (!isDraft) {
+      // Submit the invoice with user ID
+      const result = await invoiceService.submitInvoice(data, user.id);
+      
+      if (!result.success) {
+        error('Submission Failed', result.error || 'Failed to submit invoice');
+        return;
+      }
+      
+      // Refresh invoices list after successful submission
+      await refreshInvoices();
+      
       // For submitted invoices, show email setup modal
       const emailData = {
         employerEmail: data.employerEmail,
         freelancerName: data.fullName,
         freelancerEmail: data.email,
-        invoiceId: 'pending', // Will be updated with actual ID
+        invoiceId: result.invoice?.id || 'pending',
         amount: data.amount,
         network: data.network,
         description: data.description,
-        invoiceLink: `${window.location.origin}/invoice/pending`
+        invoiceLink: `${window.location.origin}/invoice/${result.invoice?.id || 'pending'}`
       };
       
       setPendingEmailData(emailData);
       setIsEmailSetupModalOpen(true);
+    } else {
+      // Handle draft saving if needed
+      const result = await invoiceService.saveDraft(data);
+      
+      if (result.success) {
+        success('Draft Saved', 'Invoice draft saved successfully');
+        await refreshInvoices();
+      } else {
+        error('Save Failed', result.error || 'Failed to save draft');
+      }
     }
   };
 
