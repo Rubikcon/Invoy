@@ -46,28 +46,6 @@ export function useAuth() {
 
     checkSession();
 
-    // Listen to auth state changes
-    const { data: { subscription } } = secureAuthService.onAuthStateChange((user) => {
-      if (user) {
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null
-        });
-      } else {
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: null
-        });
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
 
