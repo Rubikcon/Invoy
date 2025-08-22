@@ -178,8 +178,15 @@ class InvoiceService {
 
 
   // Submit complete invoice
-  async submitInvoice(data: CreateInvoiceData, userId: string): Promise<InvoiceResponse> {
+  async submitInvoice(data: CreateInvoiceData): Promise<InvoiceResponse> {
     try {
+      // Get current user from Supabase auth
+      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('User not authenticated');
+      }
+
       // Generate invoice ID
       const invoiceId = this.generateInvoiceNumber();
       
@@ -201,7 +208,7 @@ class InvoiceService {
       };
 
       // Store invoice in Supabase
-      const dbInvoice = this.mapAppInvoiceToDbInvoice(data, userId, 'Sent');
+      const dbInvoice = this.mapAppInvoiceToDbInvoice(data, user.id, 'Sent');
       const { data: savedInvoice, error: saveError } = await this.supabase
         .from('invoices')
         .insert([{
@@ -213,8 +220,7 @@ class InvoiceService {
         .single();
 
       if (saveError) {
-        console.error('Error saving invoice to database:', saveError);
-        // Fallback to local storage
+        throw new Error(`Error saving invoice to database: ${saveError.message}`);
       } else {
         invoice.id = savedInvoice.invoice_number;
       }

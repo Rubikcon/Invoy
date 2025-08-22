@@ -257,7 +257,7 @@ function App() {
     
     if (!isDraft) {
       // Submit the invoice with user ID
-      const result = await invoiceService.submitInvoice(data, user.id);
+      const result = await invoiceService.submitInvoice(data);
       
       if (!result.success) {
         error('Submission Failed', result.error || 'Failed to submit invoice');
