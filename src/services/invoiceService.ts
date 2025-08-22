@@ -180,10 +180,11 @@ class InvoiceService {
   // Submit complete invoice
   async submitInvoice(data: CreateInvoiceData): Promise<InvoiceResponse> {
     try {
-      // Get current user from Supabase auth
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      // Get current user from local auth service
+      const { authService } = await import('./authService');
+      const currentUser = authService.getCurrentUser();
       
-      if (userError || !user) {
+      if (!currentUser) {
         throw new Error('User not authenticated');
       }
 
@@ -207,25 +208,7 @@ class InvoiceService {
         sentDate: new Date()
       };
 
-      // Store invoice in Supabase
-      const dbInvoice = this.mapAppInvoiceToDbInvoice(data, user.id, 'Sent');
-      const { data: savedInvoice, error: saveError } = await this.supabase
-        .from('invoices')
-        .insert([{
-          ...dbInvoice,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-
-      if (saveError) {
-        throw new Error(`Error saving invoice to database: ${saveError.message}`);
-      } else {
-        invoice.id = savedInvoice.invoice_number;
-      }
-
-      // Also store invoice locally for compatibility
+      // Store invoice locally
       const { invoiceStorage } = await import('./invoiceStorage');
       const storedInvoice = {
         id: invoice.id,
