@@ -195,7 +195,8 @@ export function useWallet() {
       '0xa': 'Optimism',
       '0x2105': 'Base',
       '0xaa36a7': 'Sepolia',
-      '0x13881': 'Mumbai'
+      '0x13881': 'Mumbai',
+      '0x106a': 'Lisk Sepolia'
     };
     
     return networks[chainId] || 'Unknown Network';

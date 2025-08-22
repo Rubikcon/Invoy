@@ -5,7 +5,7 @@ import { Invoice } from '../types';
 export function useBlockchain() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentNetwork, setCurrentNetwork] = useState<string>('polygon');
+  const [currentNetwork, setCurrentNetwork] = useState<string>('lisk-sepolia');
   const [contractStats, setContractStats] = useState<{
     totalInvoices: number;
     totalPaidInvoices: number;
@@ -16,35 +16,39 @@ export function useBlockchain() {
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
-      const result = await blockchainService.initialize(currentNetwork);
-      setIsInitialized(result.success);
-      
-      // Only load contract stats if blockchain service initialized successfully
-      if (result.success && result.success === true) {
-        await loadContractStats();
-      } else {
-        // Clear any existing stats if initialization failed
+      try {
+        const result = await blockchainService.initialize();
+        setIsInitialized(result.success);
+        
+        if (result.success) {
+          await loadContractStats();
+        } else {
+          setContractStats(null);
+          console.warn('Blockchain initialization failed:', result.message);
+        }
+      } catch (error) {
+        console.error('Blockchain initialization error:', error);
+        setIsInitialized(false);
         setContractStats(null);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
 
     init();
-  }, [currentNetwork]);
+  }, []);
 
   // Load contract statistics
   const loadContractStats = async () => {
-    // Only attempt to load stats if blockchain service is initialized
-    if (!isInitialized) {
-      return;
-    }
-    
-    const result = await blockchainService.getContractStatistics();
-    if (result.success && result.stats) {
-      setContractStats(result.stats);
-    } else {
-      // Clear stats if loading failed
+    try {
+      const result = await blockchainService.getContractStatistics();
+      if (result.success && result.stats) {
+        setContractStats(result.stats);
+      } else {
+        setContractStats(null);
+      }
+    } catch (error) {
+      console.error('Failed to load contract stats:', error);
       setContractStats(null);
     }
   };
@@ -143,6 +147,42 @@ export function useBlockchain() {
     }
   };
 
+  // Refund payment
+  const refundPayment = async (invoice: Invoice): Promise<ContractInteractionResult> => {
+    if (!isInitialized) {
+      return { success: false, message: 'Blockchain service not initialized' };
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await blockchainService.refundPayment(invoice);
+      if (result.success) {
+        await loadContractStats();
+      }
+      return result;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cancel invoice
+  const cancelInvoice = async (invoice: Invoice): Promise<ContractInteractionResult> => {
+    if (!isInitialized) {
+      return { success: false, message: 'Blockchain service not initialized' };
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await blockchainService.cancelInvoice(invoice);
+      if (result.success) {
+        await loadContractStats();
+      }
+      return result;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Get blockchain invoice
   const getBlockchainInvoice = async (invoiceHash: string): Promise<{ success: boolean; invoice?: BlockchainInvoice; error?: string }> => {
     if (!isInitialized) {
@@ -152,25 +192,19 @@ export function useBlockchain() {
     return await blockchainService.getBlockchainInvoice(invoiceHash);
   };
 
-  // Switch network
-  const switchNetwork = async (network: string): Promise<{ success: boolean; message: string }> => {
-    setIsLoading(true);
-    try {
-      const result = await blockchainService.switchNetwork(network);
-      if (result.success) {
-        setCurrentNetwork(network);
-        setIsInitialized(true);
-        await loadContractStats();
-      }
-      return result;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Generate invoice hash
   const generateInvoiceHash = (invoice: Invoice): string => {
     return blockchainService.generateInvoiceHash(invoice);
+  };
+
+  // Check if wallet is connected
+  const isWalletConnected = (): boolean => {
+    return blockchainService.isWalletConnected();
+  };
+
+  // Get wallet address
+  const getWalletAddress = async (): Promise<string | null> => {
+    return await blockchainService.getWalletAddress();
   };
 
   return {
@@ -183,9 +217,12 @@ export function useBlockchain() {
     rejectInvoice,
     depositPayment,
     releasePayment,
+    refundPayment,
+    cancelInvoice,
     getBlockchainInvoice,
-    switchNetwork,
     generateInvoiceHash,
-    loadContractStats
+    loadContractStats,
+    isWalletConnected,
+    getWalletAddress
   };
 }

@@ -71,7 +71,8 @@ export default function CreateInvoiceModal({
     'Polygon',
     'Arbitrum',
     'Optimism',
-    'Base'
+    'Base',
+    'Lisk Sepolia'
   ];
 
   const tokens = [

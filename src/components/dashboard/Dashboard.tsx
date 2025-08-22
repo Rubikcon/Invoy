@@ -10,6 +10,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import LiskContractStatus from '../blockchain/LiskContractStatus';
 
 
 interface DashboardProps {
@@ -278,6 +279,11 @@ export default function Dashboard({
           onViewInvoice={onViewInvoice} 
           onDeleteInvoice={handleDeleteInvoice}
         />
+
+        {/* Lisk Contract Status */}
+        <div className="mt-8">
+          <LiskContractStatus />
+        </div>
 
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
