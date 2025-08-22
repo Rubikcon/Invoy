@@ -180,130 +180,72 @@ class InvoiceService {
   // Submit complete invoice
   async submitInvoice(data: CreateInvoiceData, draftId?: string): Promise<InvoiceResponse> {
     try {
-      // Get authenticated user
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      // Get current user from auth service
+      const { authService } = await import('./authService');
+      const currentUser = authService.getCurrentUser();
       
-      if (userError || !user) {
-        throw new Error(userError?.message || 'User not authenticated');
+      if (!currentUser) {
+        throw new Error('User not authenticated');
       }
 
-      // Get the user's auth data to check for existing profile
-      const { data: { user: authUser }, error: authError } = await this.supabase.auth.getUser();
-      if (authError || !authUser) {
-        throw new Error(authError?.message || 'Failed to fetch user details');
-      }
-
-      // Check if user exists in the public.users table
-      const { data: dbUser } = await this.supabase
-        .from('users')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      // If user doesn't exist in public.users, create them
-      if (!dbUser) {
-        console.log('Creating new user profile in public.users...');
-        
-        // Get user data from auth
-        const userEmail = user.email || data.email;
-        if (!userEmail) {
-          throw new Error('Email is required for user creation');
-        }
-
-        // Determine the user's role based on the data or default to 'freelancer'
-        const allowedRoles = ['freelancer', 'employer'] as const;
-        type AllowedRole = typeof allowedRoles[number];
-        
-        // Use the role from the form data if it's valid, otherwise default to 'freelancer'
-        const userRole: AllowedRole = data.role && allowedRoles.includes(data.role as AllowedRole)
-          ? data.role as AllowedRole
-          : 'freelancer';
-          
-        // Prepare user data with required fields
-        const userData = {
-          id: user.id,
-          email: userEmail,
-          name: data.fullName || user.user_metadata?.name || userEmail.split('@')[0],
-          role: userRole,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        // Try to create the user
-        const { error: createError } = await this.supabase
-          .from('users')
-          .insert(userData);
-
-        if (createError) {
-          console.error('Failed to create user profile:', createError);
-          throw new Error('Failed to create user profile');
-        }
-      }
-
-      // Now proceed with invoice creation
-      const now = new Date().toISOString();
-      const invoiceData = this.mapAppInvoiceToDbInvoice({
-        ...data,
-        email: user.email || data.email || '',
-        fullName: data.fullName || user.user_metadata?.name || 'Unknown User',
-        walletAddress: data.walletAddress || ''
-      }, user.id, 'Sent');
+      // Generate invoice ID
+      const invoiceId = this.generateInvoiceNumber();
       
-      const invoiceToSave: Partial<DatabaseInvoice> = {
-        ...invoiceData,
+      // Create invoice object
+      const invoice: Invoice = {
+        id: invoiceId,
+        employerEmail: data.employerEmail,
+        amount: data.amount,
         status: 'Sent',
-        sent_at: now,
-        updated_at: now,
+        freelancerName: data.fullName,
+        freelancerEmail: data.email,
+        walletAddress: data.walletAddress,
+        network: data.network,
+        token: data.token,
+        role: data.role,
+        description: data.description,
+        createdAt: new Date(),
+        sentDate: new Date()
       };
 
-      // If this was a draft, update it, otherwise create a new invoice
-      let result;
-      if (draftId) {
-        const { data, error } = await this.supabase
-          .from('invoices')
-          .update(invoiceToSave)
-          .eq('id', draftId)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        result = data;
-      } else {
-        const { data, error } = await this.supabase
-          .from('invoices')
-          .insert([{ ...invoiceToSave, created_at: now }])
-          .select()
-          .single();
-        
-        if (error) throw error;
-        result = data;
-      }
+      // Store invoice locally (since Supabase isn't configured)
+      const { invoiceStorage } = await import('./invoiceStorage');
+      const storedInvoice = {
+        id: invoice.id,
+        employerEmail: invoice.employerEmail,
+        amount: invoice.amount,
+        status: invoice.status,
+        freelancerName: invoice.freelancerName,
+        freelancerEmail: invoice.freelancerEmail,
+        walletAddress: invoice.walletAddress,
+        network: invoice.network,
+        token: invoice.token,
+        role: invoice.role,
+        description: invoice.description,
+        createdAt: invoice.createdAt.toISOString(),
+        sentDate: invoice.sentDate?.toISOString()
+      };
+      
+      invoiceStorage.save(storedInvoice);
 
-      if (result) {
-        const invoice = this.mapDbInvoiceToAppInvoice(result);
-        
-        // Send email notification to employer
-        const invoiceLink = `${window.location.origin}/invoice/${result.id}`;
-        await this.sendInvoiceNotification({
-          employerEmail: data.employerEmail,
-          freelancerName: data.fullName,
-          freelancerEmail: data.email,
-          invoiceId: result.id || '',
-          amount: data.amount,
-          network: data.network,
-          description: data.description,
-          invoiceLink
-        });
+      // Send email notification to employer
+      const invoiceLink = `${window.location.origin}/invoice/${invoice.id}`;
+      await this.sendInvoiceNotification({
+        employerEmail: data.employerEmail,
+        freelancerName: data.fullName,
+        freelancerEmail: data.email,
+        invoiceId: invoice.id,
+        amount: data.amount,
+        network: data.network,
+        description: data.description,
+        invoiceLink
+      });
 
-        return {
-          success: true,
-          message: 'Invoice submitted successfully',
-          invoice
-        };
-      }
-
-      throw new Error('Failed to save invoice');
+      return {
+        success: true,
+        message: 'Invoice submitted successfully',
+        invoice
+      };
     } catch (error: any) {
       console.error('Error submitting invoice:', error);
       return {
@@ -372,21 +314,34 @@ class InvoiceService {
   // Get user's invoices
   async getUserInvoices(): Promise<{ success: boolean; invoices?: Invoice[]; error?: string }> {
     try {
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      // Get current user from auth service
+      const { authService } = await import('./authService');
+      const currentUser = authService.getCurrentUser();
       
-      if (userError || !user) {
-        throw new Error(userError?.message || 'User not authenticated');
+      if (!currentUser) {
+        throw new Error('User not authenticated');
       }
 
-      const { data, error } = await this.supabase
-        .from('invoices')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const invoices = (data || []).map(invoice => this.mapDbInvoiceToAppInvoice(invoice));
+      // Get invoices from local storage
+      const { invoiceStorage } = await import('./invoiceStorage');
+      const storedInvoices = invoiceStorage.getByWalletAddress(currentUser.walletAddress || '');
+      
+      const invoices = storedInvoices.map(stored => ({
+        id: stored.id,
+        employerEmail: stored.employerEmail,
+        amount: stored.amount,
+        status: stored.status,
+        freelancerName: stored.freelancerName,
+        freelancerEmail: stored.freelancerEmail,
+        walletAddress: stored.walletAddress,
+        network: stored.network,
+        token: stored.token,
+        role: stored.role,
+        description: stored.description,
+        createdAt: new Date(stored.createdAt),
+        sentDate: stored.sentDate ? new Date(stored.sentDate) : undefined,
+        paidDate: stored.paidDate ? new Date(stored.paidDate) : undefined
+      }));
       
       return { success: true, invoices };
     } catch (error: any) {
@@ -398,15 +353,30 @@ class InvoiceService {
   // Get invoices by employer email
   async getInvoicesByEmployerEmail(email: string): Promise<{ data: Invoice[] | null; error: any }> {
     try {
-      const { data, error } = await this.supabase
-        .from('invoices')
-        .select('*')
-        .ilike('employer_email', email)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const invoices = (data || []).map(invoice => this.mapDbInvoiceToAppInvoice(invoice));
+      // Get invoices from local storage
+      const { invoiceStorage } = await import('./invoiceStorage');
+      const allInvoices = invoiceStorage.getAllGlobal();
+      
+      const filteredInvoices = allInvoices.filter(invoice => 
+        invoice.employerEmail.toLowerCase() === email.toLowerCase()
+      );
+      
+      const invoices = filteredInvoices.map(stored => ({
+        id: stored.id,
+        employerEmail: stored.employerEmail,
+        amount: stored.amount,
+        status: stored.status,
+        freelancerName: stored.freelancerName,
+        freelancerEmail: stored.freelancerEmail,
+        walletAddress: stored.walletAddress,
+        network: stored.network,
+        token: stored.token,
+        role: stored.role,
+        description: stored.description,
+        createdAt: new Date(stored.createdAt),
+        sentDate: stored.sentDate ? new Date(stored.sentDate) : undefined,
+        paidDate: stored.paidDate ? new Date(stored.paidDate) : undefined
+      }));
       
       return { data: invoices, error: null };
     } catch (error) {
@@ -418,18 +388,31 @@ class InvoiceService {
   // Get invoice by ID
   async getInvoiceById(invoiceId: string): Promise<{ success: boolean; invoice?: Invoice; error?: string }> {
     try {
-      const { data: invoice, error } = await this.supabase
-        .from('invoices')
-        .select('*')
-        .eq('id', invoiceId)
-        .single();
+      // Get invoice from local storage
+      const { invoiceStorage } = await import('./invoiceStorage');
+      const storedInvoice = invoiceStorage.getById(invoiceId);
       
-      if (error) throw error;
-      
-      if (invoice) {
+      if (storedInvoice) {
+        const invoice: Invoice = {
+          id: storedInvoice.id,
+          employerEmail: storedInvoice.employerEmail,
+          amount: storedInvoice.amount,
+          status: storedInvoice.status,
+          freelancerName: storedInvoice.freelancerName,
+          freelancerEmail: storedInvoice.freelancerEmail,
+          walletAddress: storedInvoice.walletAddress,
+          network: storedInvoice.network,
+          token: storedInvoice.token,
+          role: storedInvoice.role,
+          description: storedInvoice.description,
+          createdAt: new Date(storedInvoice.createdAt),
+          sentDate: storedInvoice.sentDate ? new Date(storedInvoice.sentDate) : undefined,
+          paidDate: storedInvoice.paidDate ? new Date(storedInvoice.paidDate) : undefined
+        };
+        
         return { 
           success: true, 
-          invoice: this.mapDbInvoiceToAppInvoice(invoice) 
+          invoice 
         };
       }
 
@@ -452,33 +435,46 @@ class InvoiceService {
     rejectionReason?: string
   ): Promise<{ success: boolean; message: string; invoice?: Invoice; error?: string }> {
     try {
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      // Get current user from auth service
+      const { authService } = await import('./authService');
+      const currentUser = authService.getCurrentUser();
       
-      if (userError || !user) {
-        throw new Error(userError?.message || 'User not authenticated');
+      if (!currentUser) {
+        throw new Error('User not authenticated');
       }
 
-      const updateData: Partial<DatabaseInvoice> = {
-        status,
-        updated_at: new Date().toISOString(),
-        ...(status === 'Rejected' && { rejection_reason: rejectionReason }),
-        ...(status === 'Paid' && { paid_at: new Date().toISOString() })
-      };
-
-      const { data: updatedInvoice, error } = await this.supabase
-        .from('invoices')
-        .update(updateData)
-        .eq('id', invoiceId)
-        .eq('employer_email', user.email) // Ensure the user is the employer
-        .select()
-        .single();
+      // Update invoice status in local storage
+      const { invoiceStorage } = await import('./invoiceStorage');
+      invoiceStorage.updateStatus(invoiceId, status, rejectionReason);
       
-      if (error) throw error;
+      // Get updated invoice
+      const updatedStoredInvoice = invoiceStorage.getById(invoiceId);
+      
+      if (!updatedStoredInvoice) {
+        throw new Error('Invoice not found');
+      }
+      
+      const updatedInvoice: Invoice = {
+        id: updatedStoredInvoice.id,
+        employerEmail: updatedStoredInvoice.employerEmail,
+        amount: updatedStoredInvoice.amount,
+        status: updatedStoredInvoice.status,
+        freelancerName: updatedStoredInvoice.freelancerName,
+        freelancerEmail: updatedStoredInvoice.freelancerEmail,
+        walletAddress: updatedStoredInvoice.walletAddress,
+        network: updatedStoredInvoice.network,
+        token: updatedStoredInvoice.token,
+        role: updatedStoredInvoice.role,
+        description: updatedStoredInvoice.description,
+        createdAt: new Date(updatedStoredInvoice.createdAt),
+        sentDate: updatedStoredInvoice.sentDate ? new Date(updatedStoredInvoice.sentDate) : undefined,
+        paidDate: updatedStoredInvoice.paidDate ? new Date(updatedStoredInvoice.paidDate) : undefined
+      };
       
       return {
         success: true,
         message: 'Invoice status updated successfully',
-        invoice: updatedInvoice ? this.mapDbInvoiceToAppInvoice(updatedInvoice) : undefined
+        invoice: updatedInvoice
       };
     } catch (error: any) {
       return {
@@ -492,32 +488,29 @@ class InvoiceService {
   // Delete invoice
   async deleteInvoice(invoiceId: string): Promise<InvoiceResponse> {
     try {
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
+      // Get current user from auth service
+      const { authService } = await import('./authService');
+      const currentUser = authService.getCurrentUser();
       
-      if (userError || !user) {
-        throw new Error(userError?.message || 'User not authenticated');
+      if (!currentUser) {
+        throw new Error('User not authenticated');
       }
 
-      // First get the invoice to verify ownership
-      const { data: invoice, error: fetchError } = await this.supabase
-        .from('invoices')
-        .select('user_id')
-        .eq('id', invoiceId)
-        .single();
+      // Get invoice from local storage to verify ownership
+      const { invoiceStorage } = await import('./invoiceStorage');
+      const invoice = invoiceStorage.getById(invoiceId);
       
-      if (fetchError) throw fetchError;
+      if (!invoice) {
+        throw new Error('Invoice not found');
+      }
       
-      // Only the creator can delete the invoice
-      if (invoice.user_id !== user.id) {
+      // Only the creator can delete the invoice (check by wallet address)
+      if (invoice.walletAddress.toLowerCase() !== (currentUser.walletAddress || '').toLowerCase()) {
         throw new Error('Unauthorized to delete this invoice');
       }
 
-      const { error } = await this.supabase
-        .from('invoices')
-        .delete()
-        .eq('id', invoiceId);
-      
-      if (error) throw error;
+      // Delete from local storage
+      invoiceStorage.delete(invoiceId, invoice.walletAddress);
       
       return {
         success: true,
