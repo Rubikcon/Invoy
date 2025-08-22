@@ -222,12 +222,13 @@ serve(async (req) => {
       // Hash password
       const hashedPassword = await bcrypt.hash(body.password)
 
-      // Create user
+      // Create user with password hash
       const { data: user, error: insertError } = await supabase
         .from('users')
         .insert({
           name: body.name.trim(),
           email: body.email.toLowerCase(),
+          password_hash: hashedPassword,
           role: body.role,
           email_verified: false,
           created_at: new Date().toISOString(),
@@ -253,9 +254,6 @@ serve(async (req) => {
         )
       }
 
-      // Store password hash separately in a secure way (if needed for custom auth)
-      // For now, we'll use Supabase's built-in auth instead
-      
       // Generate JWT token
       const tokens = await generateJWT(user)
 
@@ -300,23 +298,30 @@ serve(async (req) => {
         )
       }
 
-      // For now, we'll implement a simple password check
-      // In production, integrate with Supabase Auth properly
+      // Get stored password hash and verify
+      const { data: userWithPassword, error: passwordError } = await supabase
+        .from('users')
+        .select('password_hash')
+        .eq('id', user.id)
+        .single()
+
+      if (passwordError || !userWithPassword?.password_hash) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid email or password' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Verify password
       try {
-        // Try to sign in with Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: body.email.toLowerCase(),
-          password: body.password
-        })
-        
-        if (authError) {
+        const isValidPassword = await bcrypt.compare(body.password, userWithPassword.password_hash)
+        if (!isValidPassword) {
           return new Response(
             JSON.stringify({ error: 'Invalid email or password' }),
             { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
-      } catch (authError) {
-        // Fallback to custom password verification if Supabase Auth fails
+      } catch (error) {
         return new Response(
           JSON.stringify({ error: 'Invalid email or password' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
