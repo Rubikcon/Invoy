@@ -1,49 +1,11 @@
 // Secure authentication service using Supabase Auth
-import { User, LoginCredentials, RegisterData } from '../types';
-import { authService } from './authService';
-
 export const secureAuthService = {
-  // Register new user
-  async register(userData: RegisterData): Promise<{ success: boolean; user?: User; message?: string }> {
-    try {
-      const response = await authService.register(userData);
-      
-      if (!response.success) {
-        return { success: false, message: response.error || 'Registration failed' };
-      }
-      
-      return { success: true, user: response.user, message: response.message };
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      return { success: false, message: error.message || 'Registration failed' };
-    }
-  },
-
-  // Login user
-  async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
-    try {
-      const response = await authService.login(credentials);
-      
-      if (!response.success) {
-        return { success: false, message: response.error || 'Login failed' };
-      }
-      
-      return { success: true, user: response.user, message: response.message };
-    } catch (error: any) {
-      console.error('Login error:', error);
-      return { success: false, message: error.message || 'Login failed' };
-    }
-  },
-
-  // Get current user
-  async getCurrentUser(): Promise<{ success: boolean; user?: User; message?: string }> {
+  async getCurrentUser() {
     try {
       const currentUser = authService.getCurrentUser();
-      
       if (!currentUser) {
         return { success: false, message: 'No user session found' };
       }
-      
       return { success: true, user: currentUser };
     } catch (error: any) {
       console.error('Get current user error:', error);
@@ -51,10 +13,19 @@ export const secureAuthService = {
     }
   },
 
-  // Logout user
-  async logout(): Promise<{ success: boolean; message?: string }> {
+  async register(userData: any) {
     try {
-      authService.logout();
+      const response = await authService.register(userData);
+      return { success: true, user: response };
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      return { success: false, message: error.message || 'Registration failed' };
+    }
+  },
+
+  async logout() {
+    try {
+      await authService.logout();
       return { success: true, message: 'Logged out successfully' };
     } catch (error: any) {
       console.error('Logout error:', error);
@@ -63,7 +34,7 @@ export const secureAuthService = {
   },
 
   // Refresh authentication token
-  async refreshAuth(): Promise<{ success: boolean; user?: User; message?: string }> {
+  async refreshToken() {
     try {
       // For the local auth service, we don't need token refresh
       const currentUser = authService.getCurrentUser();
@@ -79,8 +50,8 @@ export const secureAuthService = {
     }
   },
 
-  // Check if user is authenticated using API client
-  async isAuthenticated(): Promise<boolean> {
+  // Validate current session
+  async validateSession() {
     return authService.isSessionValid();
   },
 
