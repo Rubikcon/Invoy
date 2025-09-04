@@ -70,17 +70,17 @@ function generateInvoiceId(): string {
 
 // Generate SHA-256 hash of invoice data
 async function generateInvoiceHash(invoiceData: any): Promise<string> {
-  // Create canonical JSON representation
+  // Create canonical JSON representation using sanitization functions
   const canonicalData = {
-    employer_email: invoiceData.employer_email.toLowerCase(),
-    freelancer_name: invoiceData.freelancer_name.trim(),
-    freelancer_email: invoiceData.freelancer_email.toLowerCase(),
-    wallet_address: invoiceData.wallet_address.toLowerCase(),
-    network: invoiceData.network.toLowerCase(),
-    token: invoiceData.token.toUpperCase(),
+    employer_email: sanitizeEmail(invoiceData.employer_email),
+    freelancer_name: sanitizeString(invoiceData.freelancer_name),
+    freelancer_email: sanitizeEmail(invoiceData.freelancer_email),
+    wallet_address: sanitizeWalletAddress(invoiceData.wallet_address),
+    network: sanitizeNetwork(invoiceData.network),
+    token: sanitizeToken(invoiceData.token),
     amount: parseFloat(invoiceData.amount).toFixed(8),
-    role: invoiceData.role.trim(),
-    description: invoiceData.description.trim()
+    role: sanitizeString(invoiceData.role),
+    description: sanitizeString(invoiceData.description)
   }
   
   const canonicalJson = JSON.stringify(canonicalData, Object.keys(canonicalData).sort())
@@ -102,6 +102,27 @@ function isValidWalletAddress(address: string): boolean {
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email)
+}
+
+// Input sanitization functions
+function sanitizeString(input: string | null | undefined): string {
+  return (input || '').trim()
+}
+
+function sanitizeEmail(email: string | null | undefined): string {
+  return (email || '').trim().toLowerCase()
+}
+
+function sanitizeWalletAddress(address: string | null | undefined): string {
+  return (address || '').trim().toLowerCase()
+}
+
+function sanitizeNetwork(network: string | null | undefined): string {
+  return (network || '').trim().toLowerCase()
+}
+
+function sanitizeToken(token: string | null | undefined): string {
+  return (token || '').trim().toUpperCase()
 }
 
 // Validate network compatibility
@@ -192,17 +213,18 @@ serve(async (req) => {
       // Generate data hash
       const dataHash = await generateInvoiceHash(body)
       
+      // Consistently sanitize all input fields
       const invoiceData = {
         user_id: user.id,
-        employer_email: body.employer_email.toLowerCase(),
-        freelancer_name: body.freelancer_name.trim(),
-        freelancer_email: body.freelancer_email.toLowerCase(),
-        wallet_address: body.wallet_address.toLowerCase(),
-        network: body.network.toLowerCase(),
-        token: body.token.toUpperCase(),
+        employer_email: sanitizeEmail(body.employer_email),
+        freelancer_name: sanitizeString(body.freelancer_name),
+        freelancer_email: sanitizeEmail(body.freelancer_email),
+        wallet_address: sanitizeWalletAddress(body.wallet_address),
+        network: sanitizeNetwork(body.network),
+        token: sanitizeToken(body.token),
         amount: parseFloat(body.amount),
-        role: body.role.trim(),
-        description: body.description.trim(),
+        role: sanitizeString(body.role),
+        description: sanitizeString(body.description),
         description_html: body.description_html,
         status: 'Draft',
         data_hash: dataHash,
@@ -303,15 +325,15 @@ serve(async (req) => {
       
       const invoiceData = {
         user_id: user.id,
-        employer_email: body.employer_email.toLowerCase(),
-        freelancer_name: body.freelancer_name.trim(),
-        freelancer_email: body.freelancer_email.toLowerCase(),
-        wallet_address: body.wallet_address.toLowerCase(),
-        network: body.network.toLowerCase(),
-        token: body.token.toUpperCase(),
+        employer_email: sanitizeEmail(body.employer_email),
+        freelancer_name: sanitizeString(body.freelancer_name),
+        freelancer_email: sanitizeEmail(body.freelancer_email),
+        wallet_address: sanitizeWalletAddress(body.wallet_address),
+        network: sanitizeNetwork(body.network),
+        token: sanitizeToken(body.token),
         amount: amount,
-        role: body.role.trim(),
-        description: body.description.trim(),
+        role: sanitizeString(body.role),
+        description: sanitizeString(body.description),
         description_html: body.description_html,
         status: 'Sent',
         data_hash: dataHash,

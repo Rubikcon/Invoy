@@ -2,6 +2,14 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Invoice, CreateInvoiceData, InvoiceStatus } from '../types';
 import { supabase } from './supabaseClient';
+import { sanitizeInvoiceData, sanitizeInvoiceOutput } from './invoiceSanitizer';
+import { 
+  sanitizeString, 
+  sanitizeEmail, 
+  sanitizeWalletAddress, 
+  sanitizeNetwork, 
+  sanitizeToken 
+} from '../utils/sanitizeUtils';
 
 // Extended interface for database invoice data
 interface DatabaseInvoice {
@@ -91,29 +99,27 @@ class InvoiceService {
 
   // Map app invoice data to database format
   private mapAppInvoiceToDbInvoice(data: CreateInvoiceData, userId: string, status: InvoiceStatus = 'Draft'): Omit<DatabaseInvoice, 'id' | 'created_at' | 'updated_at'> {
-    // Ensure required fields have default values
-    const amount = parseFloat(data.amount) || 0;
-    const token = data.token || 'ETH';
-    const description = data.description || '';
-    
-    return {
+    // Consistently sanitize all fields
+    const sanitizedData = {
       invoice_number: this.generateInvoiceNumber(),
       user_id: userId,
-      employer_email: data.employerEmail || '',
-      freelancer_name: data.fullName || 'Unknown User',
-      freelancer_email: data.email || '',
-      wallet_address: data.walletAddress || '',
-      network: data.network || 'ethereum', // Default to ethereum if not specified
-      token: token,
-      amount: amount,
-      role: data.role || 'freelancer', // Default role
-      description: description,
-      description_html: data.descriptionHtml || description, // Fallback to plain text if HTML not provided
+      employer_email: (data.employerEmail || '').trim().toLowerCase(),
+      freelancer_name: (data.fullName || 'Unknown User').trim(),
+      freelancer_email: (data.email || '').trim().toLowerCase(),
+      wallet_address: (data.walletAddress || '').trim().toLowerCase(),
+      network: (data.network || 'ethereum').trim().toLowerCase(), // Default to ethereum if not specified
+      token: (data.token || 'ETH').trim().toUpperCase(),
+      amount: parseFloat(data.amount) || 0,
+      role: (data.role || 'freelancer').trim(), // Default role
+      description: (data.description || '').trim(),
+      description_html: data.descriptionHtml || data.description, // Fallback to plain text if HTML not provided
       status: status,
       data_hash: this.generateDataHash(data),
       sent_at: status === 'Sent' ? new Date().toISOString() : null,
       paid_at: null,
     };
+    
+    return sanitizedData;
   }
 
   // Create or update invoice draft
@@ -191,19 +197,19 @@ class InvoiceService {
       // Generate invoice ID
       const invoiceId = this.generateInvoiceNumber();
       
-      // Create invoice object
+      // Create invoice object with sanitized data
       const invoice: Invoice = {
         id: invoiceId,
-        employerEmail: data.employerEmail,
+        employerEmail: (data.employerEmail || '').trim().toLowerCase(),
         amount: data.amount,
         status: 'Sent',
-        freelancerName: data.fullName,
-        freelancerEmail: data.email,
-        walletAddress: data.walletAddress,
-        network: data.network,
-        token: data.token,
-        role: data.role,
-        description: data.description,
+        freelancerName: (data.fullName || '').trim(),
+        freelancerEmail: (data.email || '').trim().toLowerCase(),
+        walletAddress: (data.walletAddress || '').trim().toLowerCase(),
+        network: (data.network || '').trim().toLowerCase(),
+        token: (data.token || '').trim().toUpperCase(),
+        role: (data.role || '').trim(),
+        description: (data.description || '').trim(),
         createdAt: new Date(),
         sentDate: new Date()
       };

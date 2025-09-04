@@ -1,6 +1,10 @@
 import React from 'react';
 import { Star, Quote } from 'lucide-react';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
+import founderImg1 from '../../assets/images/Founder1.jpeg';
+import founderImg2 from '../../assets/images/Founder2.jpg'
+import founderImg3 from '../../assets/images/Founder3.jpg';
+import ctoImg from '../../assets/images/CTO.jpg';
 
 export default function Testimonials() {
   const { ref: titleRef, isVisible: titleVisible } = useScrollAnimation();
@@ -9,23 +13,23 @@ export default function Testimonials() {
   const testimonials = [
     {
       quote: "Invoy helped me avoid chain errors and get paid faster. The verification system caught a potential mistake that would have cost me 2 ETH.",
-      author: "Uche David",
+      author: "James Imole",
       role: "Smart Contract Developer",
-      avatar: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
+      avatar: ctoImg,
       rating: 5
     },
     {
       quote: "The approval system gave my team full visibility and control. We can review work details before processing payments, which builds trust.",
-      author: "Sonia Usiwo",
+      author: "Jessy Kamala",
       role: "DAO Lead",
-      avatar: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
+      avatar: founderImg3,
       rating: 5
     },
     {
       quote: "Finally, a professional way to handle crypto payments. No more screenshots of wallet addresses in chat apps. Invoy makes it seamless.",
       author: "Joy Michael",
-      role: "Web3 Designer",
-      avatar: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop",
+      role: "Founder",
+      avatar: founderImg2,
       rating: 5
     }
   ];
