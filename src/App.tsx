@@ -17,7 +17,7 @@ import HowItWorks from './components/landing/HowItWorks';
 import Testimonials from './components/landing/Testimonials';
 import FAQ from './components/landing/FAQ';
 import Dashboard from './components/dashboard/Dashboard';
-import EmployerDashboard from './components/dashboard/EmployerDashboard';
+import { EmployerDashboard } from './components/dashboard/EmployerDashboard';
 import CreateInvoiceModal from './components/modals/CreateInvoiceModal';
 import EmployerInvoice from './components/pages/EmployerInvoice';
 import AboutUs from './components/pages/AboutUs';
@@ -211,6 +211,17 @@ function App() {
     setIsLoginModalOpen(true);
   };
 
+  const handleDisconnectWallet = async () => {
+    try {
+      await disconnectWallet();
+      // Optionally show a success message
+      toast.success('Wallet disconnected');
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      toast.error('Failed to disconnect wallet');
+    }
+  };
+
   const handleLogout = () => {
     logout();
     disconnectWallet(); // Also disconnect wallet
@@ -239,26 +250,47 @@ function App() {
   }, [walletInfo.isConnected, walletInfo.address, user, updateProfile]);
 
   const handleSubmitInvoice = async (data: CreateInvoiceData, isDraft: boolean = false) => {
-    if (!user) return;
-    
-    // Refresh invoices list
-    await refreshInvoices();
+    if (!user) {
+      error('Authentication Error', 'Please log in to submit an invoice');
+      return;
+    }
     
     if (!isDraft) {
+      // Submit the invoice with user ID
+      const result = await invoiceService.submitInvoice(data);
+      
+      if (!result.success) {
+        error('Submission Failed', result.error || 'Failed to submit invoice');
+        return;
+      }
+      
+      // Refresh invoices list after successful submission
+      await refreshInvoices();
+      
       // For submitted invoices, show email setup modal
       const emailData = {
         employerEmail: data.employerEmail,
         freelancerName: data.fullName,
         freelancerEmail: data.email,
-        invoiceId: 'pending', // Will be updated with actual ID
+        invoiceId: result.invoice?.id || 'pending',
         amount: data.amount,
         network: data.network,
         description: data.description,
-        invoiceLink: `${window.location.origin}/invoice/pending`
+        invoiceLink: `${window.location.origin}/invoice/${result.invoice?.id || 'pending'}`
       };
       
       setPendingEmailData(emailData);
       setIsEmailSetupModalOpen(true);
+    } else {
+      // Handle draft saving if needed
+      const result = await invoiceService.saveDraft(data);
+      
+      if (result.success) {
+        success('Draft Saved', 'Invoice draft saved successfully');
+        await refreshInvoices();
+      } else {
+        error('Save Failed', result.error || 'Failed to save draft');
+      }
     }
   };
 
@@ -326,10 +358,11 @@ function App() {
         }
         return (
           <Dashboard
-            walletInfo={user.walletAddress ? { ...walletInfo, address: user.walletAddress, isConnected: true } : walletInfo}
+            walletInfo={walletInfo.isConnected ? walletInfo : { ...walletInfo, isConnected: false }}
             invoices={invoices}
             onCreateInvoice={handleCreateInvoice}
-            onDisconnectWallet={handleLogout}
+            onDisconnectWallet={handleDisconnectWallet}
+            onConnectWallet={connectWallet}
             onViewInvoice={(invoice) => {
               setSelectedInvoice(invoice);
               setCurrentView('freelancer-invoice-view');

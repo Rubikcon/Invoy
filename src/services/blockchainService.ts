@@ -1,74 +1,35 @@
-// Blockchain service for interacting with Invoy smart contracts
+// Blockchain service for interacting with the Invoy smart contract on Lisk Sepolia
 import { ethers } from 'ethers';
 import { Invoice } from '../types';
+import InvoyModuleABI from '../contracts/InvoyModule.json';
 
-// Contract ABIs (simplified for demo - in production, import from compiled artifacts)
-const INVOICE_REGISTRY_ABI = [
-  "function registerInvoice(bytes32 invoiceHash, address freelancerAddress, address employerAddress, uint256 amount, address tokenAddress, uint256 chainId) external",
-  "function acceptInvoice(bytes32 invoiceHash) external",
-  "function rejectInvoice(bytes32 invoiceHash, string reason) external",
-  "function cancelInvoice(bytes32 invoiceHash) external",
-  "function depositPayment(bytes32 invoiceHash) external payable",
-  "function releasePayment(bytes32 invoiceHash) external",
-  "function refundPayment(bytes32 invoiceHash) external",
-  "function markAsPaid(bytes32 invoiceHash) external",
-  "function getInvoice(bytes32 invoiceHash) external view returns (tuple(bytes32 invoiceHash, address freelancerAddress, address employerAddress, uint256 amount, address tokenAddress, uint256 chainId, uint8 state, uint256 createdAt, uint256 updatedAt, string rejectionReason, bool hasEscrow))",
-  "function getFreelancerInvoices(address freelancer) external view returns (bytes32[])",
-  "function getEmployerInvoices(address employer) external view returns (bytes32[])",
-  "function getStatistics() external view returns (uint256, uint256, uint256)",
-  "function invoiceExists(bytes32 invoiceHash) external view returns (bool)",
-  "event InvoiceRegistered(bytes32 indexed invoiceHash, address indexed freelancer, address indexed employer, uint256 amount, address token, uint256 chainId, uint256 timestamp)",
-  "event InvoiceAccepted(bytes32 indexed invoiceHash, address indexed employer, uint256 timestamp)",
-  "event InvoiceRejected(bytes32 indexed invoiceHash, address indexed employer, string reason, uint256 timestamp)",
-  "event InvoicePaid(bytes32 indexed invoiceHash, address indexed payer, uint256 timestamp)",
-  "event PaymentDeposited(bytes32 indexed invoiceHash, address indexed depositor, uint256 amount, address token, uint256 timestamp)",
-  "event PaymentReleased(bytes32 indexed invoiceHash, address indexed recipient, uint256 amount, address token, uint256 timestamp)"
-];
-
-// Contract addresses (update with actual deployed addresses)
-const CONTRACT_ADDRESSES = {
-  polygon: {
-    invoiceRegistry: '0x...' // Update with actual deployed address
-  },
-  mumbai: {
-    invoiceRegistry: '0x...' // Update with actual deployed address
-  },
-  ethereum: {
-    invoiceRegistry: '0x...' // Update with actual deployed address
-  }
+// Contract configuration
+const CONTRACT_CONFIG = {
+  address: '0x34c82345973449618fF78ac2F707ab533Af98Cb4',
+  abi: InvoyModuleABI.abi,
+  network: 'lisk-sepolia',
+  chainId: 4202,
+  rpcUrl: 'https://rpc.sepolia-api.lisk.com'
 };
 
-// Network configurations
-const NETWORK_CONFIGS = {
-  polygon: {
-    chainId: 137,
-    rpcUrl: 'https://polygon-rpc.com',
-    name: 'Polygon'
-  },
-  mumbai: {
-    chainId: 80001,
-    rpcUrl: 'https://rpc-mumbai.maticvigil.com',
-    name: 'Mumbai Testnet'
-  },
-  ethereum: {
-    chainId: 1,
-    rpcUrl: 'https://mainnet.infura.io/v3/YOUR_INFURA_KEY',
-    name: 'Ethereum'
-  }
-};
+// Invoice states enum (matching the smart contract)
+export enum InvoiceState {
+  Pending = 0,
+  Accepted = 1,
+  Rejected = 2,
+  Deposited = 3,
+  Paid = 4,
+  Cancelled = 5,
+  Refunded = 6
+}
 
 export interface BlockchainInvoice {
-  invoiceHash: string;
-  freelancerAddress: string;
-  employerAddress: string;
+  freelancer: string;
+  employer: string;
   amount: string;
-  tokenAddress: string;
+  token: string;
   chainId: number;
-  state: number;
-  createdAt: number;
-  updatedAt: number;
-  rejectionReason: string;
-  hasEscrow: boolean;
+  state: InvoiceState;
 }
 
 export interface ContractInteractionResult {
@@ -79,34 +40,84 @@ export interface ContractInteractionResult {
 }
 
 class BlockchainService {
-  private provider: ethers.providers.Web3Provider | null = null;
+  private provider: ethers.providers.JsonRpcProvider | ethers.providers.Web3Provider | null = null;
   private signer: ethers.Signer | null = null;
   private contract: ethers.Contract | null = null;
-  private currentNetwork: string = '';
+  private isInitialized: boolean = false;
 
   // Initialize blockchain connection
-  async initialize(network: string = 'polygon'): Promise<{ success: boolean; message: string }> {
+  async initialize(): Promise<{ success: boolean; message: string }> {
     try {
-      if (typeof window.ethereum === 'undefined') {
-        return { success: false, message: 'MetaMask is not installed' };
-      }
+      // Check if MetaMask is available
+      if (typeof window !== 'undefined' && window.ethereum) {
+        // Use MetaMask provider
+        this.provider = new ethers.providers.Web3Provider(window.ethereum);
+        
+        try {
+          // Request account access
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          this.signer = this.provider.getSigner();
+          
+          // Verify signer can provide an address
+          const address = await this.signer.getAddress();
+          if (!address || address === ethers.constants.AddressZero) {
+            this.isInitialized = false;
+            return { success: false, message: 'No wallet account available' };
+          }
 
-      this.provider = new ethers.providers.Web3Provider(window.ethereum);
-      this.signer = this.provider.getSigner();
-      this.currentNetwork = network;
-
-      // Get contract address for network
-      const contractAddress = CONTRACT_ADDRESSES[network as keyof typeof CONTRACT_ADDRESSES]?.invoiceRegistry;
-      if (!contractAddress) {
-        return { success: false, message: `Contract not deployed on ${network}` };
+          // Check if we're on the correct network
+          const network = await this.provider.getNetwork();
+          if (network.chainId !== CONTRACT_CONFIG.chainId) {
+            // Try to switch to Lisk Sepolia
+            try {
+              await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: `0x${CONTRACT_CONFIG.chainId.toString(16)}` }],
+              });
+            } catch (switchError: any) {
+              // If the network doesn't exist, add it
+              if (switchError.code === 4902) {
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [{
+                    chainId: `0x${CONTRACT_CONFIG.chainId.toString(16)}`,
+                    chainName: 'Lisk Sepolia Testnet',
+                    nativeCurrency: {
+                      name: 'Sepolia Ether',
+                      symbol: 'ETH',
+                      decimals: 18
+                    },
+                    rpcUrls: [CONTRACT_CONFIG.rpcUrl],
+                    blockExplorerUrls: ['https://sepolia-blockscout.lisk.com']
+                  }]
+                });
+              } else {
+                return { success: false, message: `Please switch to Lisk Sepolia network (Chain ID: ${CONTRACT_CONFIG.chainId})` };
+              }
+            }
+          }
+        } catch (error: any) {
+          this.isInitialized = false;
+          return { success: false, message: 'Wallet not connected or authorized' };
+        }
+      } else {
+        // Fallback to read-only provider
+        this.provider = new ethers.providers.JsonRpcProvider(CONTRACT_CONFIG.rpcUrl);
+        this.signer = null;
       }
 
       // Initialize contract
-      this.contract = new ethers.Contract(contractAddress, INVOICE_REGISTRY_ABI, this.signer);
+      this.contract = new ethers.Contract(
+        CONTRACT_CONFIG.address,
+        CONTRACT_CONFIG.abi,
+        this.signer || this.provider
+      );
 
+      this.isInitialized = true;
       return { success: true, message: 'Blockchain service initialized successfully' };
     } catch (error: any) {
       console.error('Blockchain initialization error:', error);
+      this.isInitialized = false;
       return { success: false, message: error.message || 'Failed to initialize blockchain service' };
     }
   }
@@ -136,29 +147,21 @@ class BlockchainService {
     employerAddress: string
   ): Promise<ContractInteractionResult> {
     try {
-      if (!this.contract) {
-        return { success: false, message: 'Blockchain service not initialized' };
+      if (!this.isInitialized || !this.contract || !this.signer) {
+        return { success: false, message: 'Blockchain service not initialized or wallet not connected' };
       }
 
       const invoiceHash = this.generateInvoiceHash(invoice);
       const amount = ethers.utils.parseEther(invoice.amount);
-      const tokenAddress = invoice.token === 'ETH' ? ethers.constants.AddressZero : '0x...'; // Update with actual token addresses
-      const chainId = NETWORK_CONFIGS[this.currentNetwork as keyof typeof NETWORK_CONFIGS]?.chainId || 137;
+      const tokenAddress = invoice.token === 'ETH' ? ethers.constants.AddressZero : ethers.constants.AddressZero; // For now, using ETH
 
-      // Check if invoice already exists
-      const exists = await this.contract.invoiceExists(invoiceHash);
-      if (exists) {
-        return { success: false, message: 'Invoice already registered on blockchain' };
-      }
-
-      // Register invoice
+      // Register invoice on smart contract
       const tx = await this.contract.registerInvoice(
         invoiceHash,
         freelancerAddress,
         employerAddress,
         amount,
-        tokenAddress,
-        chainId
+        tokenAddress
       );
 
       await tx.wait();
@@ -181,8 +184,8 @@ class BlockchainService {
   // Accept invoice on blockchain
   async acceptInvoice(invoice: Invoice): Promise<ContractInteractionResult> {
     try {
-      if (!this.contract) {
-        return { success: false, message: 'Blockchain service not initialized' };
+      if (!this.isInitialized || !this.contract || !this.signer) {
+        return { success: false, message: 'Blockchain service not initialized or wallet not connected' };
       }
 
       const invoiceHash = this.generateInvoiceHash(invoice);
@@ -208,8 +211,8 @@ class BlockchainService {
   // Reject invoice on blockchain
   async rejectInvoice(invoice: Invoice, reason: string): Promise<ContractInteractionResult> {
     try {
-      if (!this.contract) {
-        return { success: false, message: 'Blockchain service not initialized' };
+      if (!this.isInitialized || !this.contract || !this.signer) {
+        return { success: false, message: 'Blockchain service not initialized or wallet not connected' };
       }
 
       const invoiceHash = this.generateInvoiceHash(invoice);
@@ -235,22 +238,15 @@ class BlockchainService {
   // Deposit payment into escrow
   async depositPayment(invoice: Invoice): Promise<ContractInteractionResult> {
     try {
-      if (!this.contract) {
-        return { success: false, message: 'Blockchain service not initialized' };
+      if (!this.isInitialized || !this.contract || !this.signer) {
+        return { success: false, message: 'Blockchain service not initialized or wallet not connected' };
       }
 
       const invoiceHash = this.generateInvoiceHash(invoice);
       const amount = ethers.utils.parseEther(invoice.amount);
 
-      let tx;
-      if (invoice.token === 'ETH') {
-        // Native currency payment
-        tx = await this.contract.depositPayment(invoiceHash, { value: amount });
-      } else {
-        // ERC-20 token payment (would need token approval first)
-        tx = await this.contract.depositPayment(invoiceHash);
-      }
-
+      // For ETH payments, send value with transaction
+      const tx = await this.contract.depositPayment(invoiceHash, { value: amount });
       await tx.wait();
 
       return {
@@ -271,8 +267,8 @@ class BlockchainService {
   // Release payment from escrow
   async releasePayment(invoice: Invoice): Promise<ContractInteractionResult> {
     try {
-      if (!this.contract) {
-        return { success: false, message: 'Blockchain service not initialized' };
+      if (!this.isInitialized || !this.contract || !this.signer) {
+        return { success: false, message: 'Blockchain service not initialized or wallet not connected' };
       }
 
       const invoiceHash = this.generateInvoiceHash(invoice);
@@ -295,27 +291,81 @@ class BlockchainService {
     }
   }
 
+  // Refund payment
+  async refundPayment(invoice: Invoice): Promise<ContractInteractionResult> {
+    try {
+      if (!this.isInitialized || !this.contract || !this.signer) {
+        return { success: false, message: 'Blockchain service not initialized or wallet not connected' };
+      }
+
+      const invoiceHash = this.generateInvoiceHash(invoice);
+      
+      const tx = await this.contract.refundPayment(invoiceHash);
+      await tx.wait();
+
+      return {
+        success: true,
+        message: 'Payment refunded successfully',
+        transactionHash: tx.hash
+      };
+    } catch (error: any) {
+      console.error('Payment refund error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to refund payment',
+        error: error.message
+      };
+    }
+  }
+
+  // Cancel invoice on blockchain
+  async cancelInvoice(invoice: Invoice): Promise<ContractInteractionResult> {
+    try {
+      if (!this.isInitialized || !this.contract || !this.signer) {
+        return { success: false, message: 'Blockchain service not initialized or wallet not connected' };
+      }
+
+      const invoiceHash = this.generateInvoiceHash(invoice);
+      
+      const tx = await this.contract.cancelInvoice(invoiceHash);
+      await tx.wait();
+
+      return {
+        success: true,
+        message: 'Invoice cancelled on blockchain',
+        transactionHash: tx.hash
+      };
+    } catch (error: any) {
+      console.error('Invoice cancellation error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to cancel invoice on blockchain',
+        error: error.message
+      };
+    }
+  }
+
   // Get invoice from blockchain
   async getBlockchainInvoice(invoiceHash: string): Promise<{ success: boolean; invoice?: BlockchainInvoice; error?: string }> {
     try {
-      if (!this.contract) {
+      if (!this.isInitialized || !this.contract) {
         return { success: false, error: 'Blockchain service not initialized' };
       }
 
-      const invoice = await this.contract.getInvoice(invoiceHash);
+      const invoice = await this.contract.invoices(invoiceHash);
       
+      // Check if invoice exists (freelancer address should not be zero)
+      if (invoice.freelancer === ethers.constants.AddressZero) {
+        return { success: false, error: 'Invoice not found on blockchain' };
+      }
+
       const blockchainInvoice: BlockchainInvoice = {
-        invoiceHash: invoice.invoiceHash,
-        freelancerAddress: invoice.freelancerAddress,
-        employerAddress: invoice.employerAddress,
+        freelancer: invoice.freelancer,
+        employer: invoice.employer,
         amount: ethers.utils.formatEther(invoice.amount),
-        tokenAddress: invoice.tokenAddress,
+        token: invoice.token,
         chainId: invoice.chainId.toNumber(),
-        state: invoice.state,
-        createdAt: invoice.createdAt.toNumber(),
-        updatedAt: invoice.updatedAt.toNumber(),
-        rejectionReason: invoice.rejectionReason,
-        hasEscrow: invoice.hasEscrow
+        state: invoice.state
       };
 
       return { success: true, invoice: blockchainInvoice };
@@ -325,25 +375,25 @@ class BlockchainService {
     }
   }
 
-  // Get contract statistics
+  // Get contract statistics (mock implementation since the contract doesn't have this function)
   async getContractStatistics(): Promise<{
     success: boolean;
     stats?: { totalInvoices: number; totalPaidInvoices: number; totalEscrowVolume: string };
     error?: string;
   }> {
     try {
-      if (!this.contract) {
+      if (!this.isInitialized) {
         return { success: false, error: 'Blockchain service not initialized' };
       }
 
-      const stats = await this.contract.getStatistics();
-      
+      // Since the provided contract doesn't have statistics functions,
+      // we'll return mock data or implement event-based counting
       return {
         success: true,
         stats: {
-          totalInvoices: stats[0].toNumber(),
-          totalPaidInvoices: stats[1].toNumber(),
-          totalEscrowVolume: ethers.utils.formatEther(stats[2])
+          totalInvoices: 0,
+          totalPaidInvoices: 0,
+          totalEscrowVolume: '0.0'
         }
       };
     } catch (error: any) {
@@ -357,9 +407,9 @@ class BlockchainService {
     onInvoiceRegistered?: (event: any) => void;
     onInvoiceAccepted?: (event: any) => void;
     onInvoiceRejected?: (event: any) => void;
-    onInvoicePaid?: (event: any) => void;
     onPaymentDeposited?: (event: any) => void;
     onPaymentReleased?: (event: any) => void;
+    onPaymentRefunded?: (event: any) => void;
   }): void {
     if (!this.contract) return;
 
@@ -372,14 +422,14 @@ class BlockchainService {
     if (callbacks.onInvoiceRejected) {
       this.contract.on('InvoiceRejected', callbacks.onInvoiceRejected);
     }
-    if (callbacks.onInvoicePaid) {
-      this.contract.on('InvoicePaid', callbacks.onInvoicePaid);
-    }
     if (callbacks.onPaymentDeposited) {
       this.contract.on('PaymentDeposited', callbacks.onPaymentDeposited);
     }
     if (callbacks.onPaymentReleased) {
       this.contract.on('PaymentReleased', callbacks.onPaymentReleased);
+    }
+    if (callbacks.onPaymentRefunded) {
+      this.contract.on('PaymentRefunded', callbacks.onPaymentRefunded);
     }
   }
 
@@ -391,36 +441,40 @@ class BlockchainService {
   }
 
   // Get current network info
-  getCurrentNetwork(): { name: string; chainId: number } | null {
-    const config = NETWORK_CONFIGS[this.currentNetwork as keyof typeof NETWORK_CONFIGS];
-    return config ? { name: config.name, chainId: config.chainId } : null;
+  getCurrentNetwork(): { name: string; chainId: number } {
+    return { name: 'Lisk Sepolia', chainId: CONTRACT_CONFIG.chainId };
   }
 
-  // Switch to specific network
-  async switchNetwork(network: string): Promise<{ success: boolean; message: string }> {
+  // Check if wallet is connected
+  isWalletConnected(): boolean {
+    return !!this.signer;
+  }
+
+  // Get connected wallet address
+  async getWalletAddress(): Promise<string | null> {
     try {
-      if (typeof window.ethereum === 'undefined') {
-        return { success: false, message: 'MetaMask is not installed' };
-      }
-
-      const config = NETWORK_CONFIGS[network as keyof typeof NETWORK_CONFIGS];
-      if (!config) {
-        return { success: false, message: 'Unsupported network' };
-      }
-
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${config.chainId.toString(16)}` }],
-      });
-
-      // Reinitialize with new network
-      await this.initialize(network);
-
-      return { success: true, message: `Switched to ${config.name} successfully` };
-    } catch (error: any) {
-      console.error('Network switch error:', error);
-      return { success: false, message: error.message || 'Failed to switch network' };
+      if (!this.signer) return null;
+      return await this.signer.getAddress();
+    } catch {
+      return null;
     }
+  }
+
+  // Check if user has required role
+  async hasRole(role: string, account: string): Promise<boolean> {
+    try {
+      if (!this.contract) return false;
+      
+      const roleHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(role));
+      return await this.contract.hasRole(roleHash, account);
+    } catch {
+      return false;
+    }
+  }
+
+  // Get initialization status
+  getInitializationStatus(): boolean {
+    return this.isInitialized;
   }
 }
 

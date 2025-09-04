@@ -1,8 +1,10 @@
+export type InvoiceStatus = 'Draft' | 'Sent' | 'Pending' | 'Approved' | 'Paid' | 'Rejected' | 'Cancelled';
+
 export interface Invoice {
   id: string;
   employerEmail: string;
   amount: string;
-  status: 'Pending' | 'Approved' | 'Paid' | 'Rejected' | 'Draft' | 'Cancelled';
+  status: InvoiceStatus;
   freelancerName: string;
   freelancerEmail: string;
   walletAddress: string;

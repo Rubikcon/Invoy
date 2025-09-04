@@ -222,8 +222,8 @@ serve(async (req) => {
       // Hash password
       const hashedPassword = await bcrypt.hash(body.password)
 
-      // Create user
-      const { data: user, error } = await supabase
+      // Create user with password hash
+      const { data: user, error: insertError } = await supabase
         .from('users')
         .insert({
           name: body.name.trim(),
@@ -237,10 +237,19 @@ serve(async (req) => {
         .select()
         .single()
 
-      if (error) {
-        console.error('Registration error:', error)
+      if (insertError) {
+        console.error('Registration error:', insertError)
+        
+        // Check if it's a duplicate email error
+        if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
+          return new Response(
+            JSON.stringify({ error: 'User already exists with this email' }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        
         return new Response(
-          JSON.stringify({ error: 'Registration failed' }),
+          JSON.stringify({ error: 'Registration failed. Please try again.' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -249,7 +258,7 @@ serve(async (req) => {
       const tokens = await generateJWT(user)
 
       // Return user data (without password hash)
-      const { password_hash, ...userResponse } = user
+      const userResponse = user
       
       return new Response(
         JSON.stringify({
@@ -276,13 +285,27 @@ serve(async (req) => {
       }
 
       // Get user from database
-      const { data: user, error } = await supabase
+      const { data: user, error: userError } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, role, avatar, wallet_address, created_at, updated_at, email_verified, last_login_at')
         .eq('email', body.email.toLowerCase())
         .single()
 
-      if (error || !user) {
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid email or password' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Get stored password hash and verify
+      const { data: userWithPassword, error: passwordError } = await supabase
+        .from('users')
+        .select('password_hash')
+        .eq('id', user.id)
+        .single()
+
+      if (passwordError || !userWithPassword?.password_hash) {
         return new Response(
           JSON.stringify({ error: 'Invalid email or password' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -290,9 +313,15 @@ serve(async (req) => {
       }
 
       // Verify password
-      const isValidPassword = await bcrypt.compare(body.password, user.password_hash)
-      
-      if (!isValidPassword) {
+      try {
+        const isValidPassword = await bcrypt.compare(body.password, userWithPassword.password_hash)
+        if (!isValidPassword) {
+          return new Response(
+            JSON.stringify({ error: 'Invalid email or password' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      } catch (error) {
         return new Response(
           JSON.stringify({ error: 'Invalid email or password' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -311,8 +340,8 @@ serve(async (req) => {
       // Generate JWT token
       const tokens = await generateJWT(user)
 
-      // Return user data (without password hash)
-      const { password_hash, ...userResponse } = user
+      // Return user data
+      const userResponse = user
       
       return new Response(
         JSON.stringify({

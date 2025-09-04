@@ -184,16 +184,23 @@ export default function EmployerInvoice({ invoice: initialInvoice, onBack }: Emp
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Invoice Review</h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-1">Review work details and approve payment</p>
-            </div>
+            <button
+              onClick={onBack}
+              className="flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+            >
+              <ArrowLeft size={20} />
+              <span>Back to Dashboard</span>
+            </button>
             <div className="flex items-center space-x-2">
               <Shield size={20} className="text-blue-500" />
               <span className="text-sm text-gray-600 dark:text-gray-300">Secure Review Portal</span>
             </div>
+          </div>
+          <div className="mt-4">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Invoice Review</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">Review work details and approve payment</p>
           </div>
         </div>
       </div>
@@ -414,7 +421,7 @@ export default function EmployerInvoice({ invoice: initialInvoice, onBack }: Emp
                     ) : (
                       <>
                         <CheckCircle size={24} />
-                        <span>Approve & Pay {invoice.amount} ETH</span>
+                        <span>Approve Payment</span>
                       </>
                     )}
                   </button>
@@ -448,9 +455,9 @@ export default function EmployerInvoice({ invoice: initialInvoice, onBack }: Emp
                   <div className="text-center">
                     <button
                       onClick={onBack}
-                      className="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200"
+                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
                     >
-                      Back to Dashboard
+                      View All Invoices
                     </button>
                   </div>
                 </div>

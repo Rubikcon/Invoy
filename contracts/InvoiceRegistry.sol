@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
  * @author Rubikcon
  * @notice This contract handles invoice registration, status management, and payment escrow
  */
-contract InvoiceRegistry is AccessControl, ReentrancyGuard, Pausable, ERC165 {
+contract InvoiceRegistry is ERC165, AccessControl, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
 
     // Roles

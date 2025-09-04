@@ -18,21 +18,19 @@ export default function SessionTimer({
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   React.useEffect(() => {
-    const updateTimer = () => {
-      const sessionInfo = secureAuthService.getSessionInfo();
+    const updateTimer = async () => {
+      const isAuthenticated = await secureAuthService.isAuthenticated();
+      const isSessionValid = await secureAuthService.isSessionValid();
       
-      if (sessionInfo.isAuthenticated && sessionInfo.timeUntilExpiry) {
-        setTimeLeft(sessionInfo.timeUntilExpiry);
-        
-        // Warn when less than 5 minutes left
-        if (sessionInfo.timeUntilExpiry <= 5 * 60 * 1000 && sessionInfo.timeUntilExpiry > 0) {
-          // Show warning notification
-        }
-        
+      if (isAuthenticated && isSessionValid) {
+        // For Supabase, we don't have exact token expiry times readily available
+        // So we'll set a reasonable session time (e.g., 1 hour)
+        const sessionDuration = 60 * 60 * 1000; // 1 hour in milliseconds
+        setTimeLeft(sessionDuration);
+      } else if (isAuthenticated && !isSessionValid) {
         // Session expired
-        if (sessionInfo.timeUntilExpiry <= 0) {
-          onSessionExpired?.();
-        }
+        onSessionExpired?.();
+        setTimeLeft(null);
       } else {
         setTimeLeft(null);
       }
@@ -41,8 +39,8 @@ export default function SessionTimer({
     // Update immediately
     updateTimer();
 
-    // Update every second
-    const interval = setInterval(updateTimer, 1000);
+    // Update every 5 minutes (less frequent since we don't have exact expiry)
+    const interval = setInterval(updateTimer, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [onSessionExpired]);
@@ -62,7 +60,7 @@ export default function SessionTimer({
   const handleRefreshToken = async () => {
     setIsRefreshing(true);
     try {
-      await secureAuthService.refreshToken();
+      await secureAuthService.refreshAuth();
     } catch (error) {
       console.error('Failed to refresh token:', error);
     } finally {

@@ -1,14 +1,25 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
+import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-ethers";
+import "@openzeppelin/hardhat-upgrades";
+import * as dotenv from "dotenv";
+dotenv.config();
 
-/** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
+const config = {
   solidity: {
     version: "0.8.19",
     settings: {
       optimizer: {
         enabled: true,
         runs: 200,
+      },
+    },
+    solc: {
+      version: "0.8.19",
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200,
+        },
       },
     },
   },
@@ -48,5 +59,18 @@ module.exports = {
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+  },
+  typechain: {
+    outDir: "typechain-types",
+    target: "ethers-v6",
+    alwaysGenerateOverloads: false,
+    externalArtifacts: ["externalArtifacts/*.json"],
+    dontOverrideCompile: false
+  },
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts"
   },
 };

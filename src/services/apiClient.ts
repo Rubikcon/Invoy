@@ -2,7 +2,21 @@
 import jwtService from './jwtService';
 import sessionManager from './sessionManager';
 
-const API_BASE_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1';
+// Construct API base URL with fallback and validation
+const getApiBaseUrl = (): string => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  
+  if (!supabaseUrl) {
+    console.error('VITE_SUPABASE_URL environment variable is not set');
+    return 'http://localhost:54321/functions/v1'; // Local Supabase fallback
+  }
+  
+  // Ensure URL doesn't end with slash
+  const cleanUrl = supabaseUrl.replace(/\/$/, '');
+  return `${cleanUrl}/functions/v1`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -44,6 +58,14 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    // Validate API base URL before making request
+    if (!API_BASE_URL || API_BASE_URL.includes('undefined')) {
+      return {
+        success: false,
+        error: 'API configuration error: Supabase URL not properly configured. Please check your environment variables.'
+      };
+    }
+
     // Check if we need to refresh token before making request
     if (this.token && jwtService.shouldRefreshToken(this.token)) {
       await this.handleTokenRefresh();
@@ -66,7 +88,15 @@ class ApiClient {
         headers,
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        return {
+          success: false,
+          error: `Invalid response format from server (${response.status})`
+        };
+      }
 
       // Handle 401 responses (token expired/invalid)
       if (response.status === 401 && this.token && !endpoint.includes('/auth/refresh')) {
@@ -93,7 +123,7 @@ class ApiClient {
       console.error('API request failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Network error occurred'
+        error: error instanceof Error ? error.message : 'Network connection failed. Please check your internet connection and try again.'
       };
     }
   }
