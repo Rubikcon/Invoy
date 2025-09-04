@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Wallet, Plus, Trash2, Shield, CheckCircle, AlertCircle, Star } from 'lucide-react';
+import { X, Wallet, Plus, CheckCircle, AlertCircle, Star } from 'lucide-react';
 import { UserWallet } from '../../types';
 import { userProfileService } from '../../services/userProfileService';
 import { useWallet } from '../../hooks/useWallet';
@@ -20,7 +20,7 @@ export default function WalletManagementModal({
   userWallets, 
   onWalletsUpdate 
 }: WalletManagementModalProps) {
-  const { walletInfo, connectWallet } = useWallet();
+  const { walletInfo, connectionError, connectWallet, requestWalletSignature } = useWallet();
   const [isLoading, setIsLoading] = React.useState(false);
   const [showConsentModal, setShowConsentModal] = React.useState(false);
   const [pendingWallet, setPendingWallet] = React.useState<{ address: string; network: string } | null>(null);
@@ -28,7 +28,25 @@ export default function WalletManagementModal({
 
   const handleAddWallet = async () => {
     if (!walletInfo.isConnected) {
-      await connectWallet();
+      // Try to connect wallet
+      const connected = await connectWallet();
+      if (!connected) {
+        setMessage({ 
+          type: 'error', 
+          text: connectionError || 'Failed to connect wallet. Please try again.' 
+        });
+        setTimeout(() => setMessage(null), 3000);
+        return;
+      }
+    }
+
+    // Double check that we have a valid connected wallet
+    if (!walletInfo.address || !walletInfo.network) {
+      setMessage({ 
+        type: 'error', 
+        text: 'No wallet detected. Please ensure your wallet is connected.'
+      });
+      setTimeout(() => setMessage(null), 3000);
       return;
     }
 
@@ -57,6 +75,14 @@ export default function WalletManagementModal({
 
     setIsLoading(true);
     try {
+      // Request signature for wallet verification
+      const signatureResult = await requestWalletSignature();
+      
+      if (!signatureResult || !signatureResult.success || !signatureResult.signature) {
+        throw new Error(signatureResult?.message || 'Failed to obtain wallet signature');
+      }
+      
+      // Add wallet with the signature
       const result = await userProfileService.addWalletWithConsent(
         userId,
         pendingWallet.address,
@@ -68,14 +94,15 @@ export default function WalletManagementModal({
         // Refresh wallets list
         const updatedWallets = userProfileService.getUserWallets(userId);
         onWalletsUpdate(updatedWallets);
-        setMessage({ type: 'success', text: result.message });
+        setMessage({ type: 'success', text: 'Wallet added successfully' });
         setShowConsentModal(false);
         setPendingWallet(null);
       } else {
-        setMessage({ type: 'error', text: result.message });
+        setMessage({ type: 'error', text: result.message || 'Failed to add wallet' });
       }
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to add wallet' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to add wallet' });
+      setShowConsentModal(false);
     } finally {
       setIsLoading(false);
     }
@@ -90,11 +117,11 @@ export default function WalletManagementModal({
         if (result.success) {
           const updatedWallets = userProfileService.getUserWallets(userId);
           onWalletsUpdate(updatedWallets);
-          setMessage({ type: 'success', text: result.message });
+          setMessage({ type: 'success', text: result.message || 'Wallet removed successfully' });
         } else {
-          setMessage({ type: 'error', text: result.message });
+          setMessage({ type: 'error', text: result.message || 'Failed to remove wallet' });
         }
-      } catch (error) {
+      } catch {
         setMessage({ type: 'error', text: 'Failed to remove wallet' });
       } finally {
         setIsLoading(false);
@@ -110,11 +137,11 @@ export default function WalletManagementModal({
       if (result.success) {
         const updatedWallets = userProfileService.getUserWallets(userId);
         onWalletsUpdate(updatedWallets);
-        setMessage({ type: 'success', text: result.message });
+        setMessage({ type: 'success', text: 'Primary wallet updated successfully' });
       } else {
-        setMessage({ type: 'error', text: result.message });
+        setMessage({ type: 'error', text: result.message || 'Failed to update primary wallet' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to set primary wallet' });
     } finally {
       setIsLoading(false);
@@ -255,39 +282,24 @@ export default function WalletManagementModal({
                 ))
               )}
             </div>
-
-            {/* Security Notice */}
-            <div className="mt-6 bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <Shield size={20} className="text-gray-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-1">Security Notice</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    We only store your public wallet addresses. Your private keys remain secure in your wallet and are never shared with Invoy.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Wallet Consent Modal */}
-      <WalletConsentModal
-        isOpen={showConsentModal}
-        onClose={() => {
-          setShowConsentModal(false);
-          setPendingWallet(null);
-        }}
-        onConsent={handleWalletConsent}
-        onDecline={() => {
-          setShowConsentModal(false);
-          setPendingWallet(null);
-        }}
-        walletAddress={pendingWallet?.address || ''}
-        network={pendingWallet?.network || ''}
-        isLoading={isLoading}
-      />
+      {showConsentModal && pendingWallet && (
+        <WalletConsentModal
+          isOpen={showConsentModal}
+          onClose={() => {
+            setShowConsentModal(false);
+            setPendingWallet(null);
+          }}
+          onConfirm={handleWalletConsent}
+          walletAddress={pendingWallet.address}
+          network={pendingWallet.network}
+          isLoading={isLoading}
+        />
+      )}
     </>
   );
 }

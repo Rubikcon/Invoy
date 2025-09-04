@@ -99,6 +99,7 @@ Users can generate invoices by filling in:
 | Blockchain  | EVM-compatible chains (Polygon, ETH)   |
 | Emails      | Supabase Functions / Resend / SendGrid |
 | Storage     | Supabase Storage for invoices          |
+| Email       | Resend Email Service for notifications |
 
 ---
 
@@ -122,7 +123,7 @@ Users can generate invoices by filling in:
 - 🔗 Secure, shareable invoice links  
 - 💼 Employer approval before funds move  
 - 🧾 Built-in invoice records for both parties  
-- 📧 Email alerts to maintain trust and transparency  
+- 📧 Professional email notifications powered by Resend to maintain trust and transparency  
 - 💻 Built entirely for the decentralized Web3 ecosystem
 
 ---

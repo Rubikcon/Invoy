@@ -97,13 +97,35 @@ async function verifyTokenAndGetUser(authHeader: string | null): Promise<any> {
   return user
 }
 
-// Verify wallet signature (simplified for demo - use ethers.js in production)
-function verifyWalletSignature(signature: string, message: string, expectedAddress: string): boolean {
-  // In production, use ethers.js or similar library for proper signature verification
-  // For demo purposes, we'll do basic validation
-  return signature.length > 100 && 
-         signature.startsWith('0x') && 
-         message.includes(expectedAddress)
+// Import ethers for signature verification
+import { ethers } from "https://esm.sh/ethers@6.8.1"
+
+// Verify wallet signature with cryptographic methods using EIP-191 standard
+async function verifyWalletSignature(signature: string, message: string, expectedAddress: string): Promise<boolean> {
+  try {
+    // Validate inputs
+    if (!signature || !message || !expectedAddress) {
+      return false;
+    }
+    
+    // Format the message according to Ethereum's personal_sign standard (EIP-191)
+    // This prefixes the message with "\x19Ethereum Signed Message:\n" + message.length
+    const formattedMessage = ethers.hashMessage(message);
+    
+    // Split the signature into components
+    if (!signature.startsWith('0x')) {
+      signature = '0x' + signature;
+    }
+    
+    // Handle signature recovery - ethers.js recoverAddress expects the message hash and signature
+    const recoveredAddress = ethers.recoverAddress(formattedMessage, signature);
+    
+    // Compare with expected address (case insensitive)
+    return recoveredAddress.toLowerCase() === expectedAddress.toLowerCase();
+  } catch (error) {
+    console.error("Signature verification failed:", error);
+    return false;
+  }
 }
 
 serve(async (req) => {
@@ -194,7 +216,7 @@ serve(async (req) => {
       }
 
       // Verify signature
-      const isValidSignature = verifyWalletSignature(
+      const isValidSignature = await verifyWalletSignature(
         body.signature, 
         body.message, 
         body.walletAddress
@@ -240,7 +262,7 @@ serve(async (req) => {
       }
 
       // Verify signature first
-      const isValidSignature = verifyWalletSignature(
+      const isValidSignature = await verifyWalletSignature(
         body.signature, 
         body.message, 
         body.walletAddress

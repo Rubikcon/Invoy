@@ -1,9 +1,10 @@
 // Wallet Authentication Service for signature verification and wallet login
-import { WalletAuthChallenge, UserWallet } from '../types';
+import { WalletAuthChallenge } from '../types';
+import { EthereumProvider } from '../types/ethereum';
 
 declare global {
   interface Window {
-    ethereum?: any;
+    ethereum?: EthereumProvider;
   }
 }
 
@@ -13,10 +14,14 @@ export interface WalletSignatureResult {
   address: string;
 }
 
+export interface WalletAuthUser {
+  walletAddress: string;
+}
+
 export interface WalletAuthResult {
   success: boolean;
   message: string;
-  user?: any;
+  user?: WalletAuthUser;
   challenge?: WalletAuthChallenge;
 }
 
@@ -129,27 +134,35 @@ This request will not trigger a blockchain transaction or cost any gas fees.`;
     }
   }
 
-  // Verify wallet signature
+  // Verify wallet signature using cryptographic methods
   async verifyWalletSignature(
     signature: string, 
     message: string, 
     expectedAddress: string
   ): Promise<{ isValid: boolean; recoveredAddress?: string }> {
     try {
-      // In a real implementation, you would verify the signature on the backend
-      // For demo purposes, we'll simulate verification
-      
       // Basic validation
       if (!signature || !message || !expectedAddress) {
         return { isValid: false };
       }
 
-      // Simulate signature verification (in production, use ethers.js or similar)
-      const isValid = signature.length > 100 && signature.startsWith('0x');
+      // Import ethers dynamically to avoid SSR issues
+      const { ethers } = await import('ethers');
+      
+      // Recover the address from the signature
+      const msgUtf8 = new TextEncoder().encode(message);
+      const msgHex = '0x' + Array.from(msgUtf8).map(b => b.toString(16).padStart(2, '0')).join('');
+      const msgHash = ethers.keccak256(msgHex);
+      
+      // Recover the address that signed the message
+      const recoveredAddress = ethers.recoverAddress(msgHash, signature);
+      
+      // Compare with expected address (case insensitive)
+      const isValid = recoveredAddress.toLowerCase() === expectedAddress.toLowerCase();
       
       return {
         isValid,
-        recoveredAddress: isValid ? expectedAddress : undefined
+        recoveredAddress: isValid ? recoveredAddress : undefined
       };
     } catch (error) {
       console.error('Signature verification error:', error);

@@ -1,4 +1,4 @@
-// send-invoice-email/index.ts
+// send-status-email/index.ts
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { Resend } from "npm:resend@1.0.0";
 
@@ -8,14 +8,14 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-interface EmailRequest {
+interface StatusUpdateRequest {
   to: string;
   subject: string;
   html: string;
   freelancer_name: string;
-  freelancer_email: string;
   invoice_id: string;
-  invoice_link: string;
+  status: 'Approved' | 'Rejected' | 'Paid';
+  rejection_reason?: string;
 }
 
 // Validate email format
@@ -59,12 +59,12 @@ serve(async (req) => {
       );
     }
 
-    const body: EmailRequest = await req.json();
+    const body: StatusUpdateRequest = await req.json();
     
     // Validation
-    if (!body.to || !body.subject || !body.html) {
+    if (!body.to || !body.subject || !body.html || !body.status) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: to, subject, html' }),
+        JSON.stringify({ error: 'Missing required fields: to, subject, html, status' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -97,14 +97,14 @@ serve(async (req) => {
         
         // Send email using Resend
         const { data, error } = await resend.emails.send({
-          from: "Invoy <invoices@invoy.app>",
+          from: "Invoy <notifications@invoy.app>",
           to: [body.to],
           subject: body.subject,
           html: body.html,
-          reply_to: body.freelancer_email,
           tags: [
-            { name: "email_type", value: "invoice" },
+            { name: "email_type", value: "status_update" },
             { name: "invoice_id", value: body.invoice_id },
+            { name: "status", value: body.status.toLowerCase() },
           ],
         });
         
@@ -118,7 +118,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             success: true,
-            message: `Invoice email sent successfully to ${body.to}`,
+            message: `Status update email sent successfully to ${body.to}`,
             email_id: data?.id,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -129,11 +129,11 @@ serve(async (req) => {
       }
     } else {
       // For development/mock purposes
-      console.log("DEV MODE: Sending mock invoice email:", {
+      console.log("DEV MODE: Sending mock status update email:", {
         to: body.to,
         subject: body.subject,
-        from: "Invoy <invoices@invoy.app>",
-        reply_to: body.freelancer_email,
+        status: body.status,
+        from: "Invoy <notifications@invoy.app>",
         invoice_id: body.invoice_id,
       });
       
@@ -146,7 +146,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: `[MOCK] Invoice email sent to ${body.to}`,
+          message: `[MOCK] Status update email (${body.status}) sent to ${body.to}`,
           email_id: `mock_${Date.now()}`,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

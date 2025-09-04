@@ -447,15 +447,37 @@ class BlockchainService {
 
   // Check if wallet is connected
   isWalletConnected(): boolean {
-    return !!this.signer;
+    return !!this.signer && this.isInitialized;
   }
 
   // Get connected wallet address
   async getWalletAddress(): Promise<string | null> {
     try {
       if (!this.signer) return null;
-      return await this.signer.getAddress();
-    } catch {
+      const address = await this.signer.getAddress();
+      if (address && address !== ethers.constants.AddressZero) {
+        return address;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting wallet address:', error);
+      return null;
+    }
+  }
+  
+  // Get current network information
+  async getNetworkInfo(): Promise<{chainId: number, name: string} | null> {
+    try {
+      if (this.provider) {
+        const network = await this.provider.getNetwork();
+        return {
+          chainId: network.chainId,
+          name: network.name
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting network info:', error);
       return null;
     }
   }
